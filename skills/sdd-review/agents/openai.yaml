@@ -1,0 +1,5 @@
+interface:
+  display_name: "Review"
+  short_description: "Revisa o diff em tres eixos separados"
+policy:
+  allow_implicit_invocation: false

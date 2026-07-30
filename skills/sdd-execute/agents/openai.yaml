@@ -1,0 +1,5 @@
+interface:
+  display_name: "Implementar"
+  short_description: "Decompoe em tasks e implementa com TDD"
+policy:
+  allow_implicit_invocation: false

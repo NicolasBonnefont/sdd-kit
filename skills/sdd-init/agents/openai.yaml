@@ -1,0 +1,5 @@
+interface:
+  display_name: "Iniciar"
+  short_description: "Escreve o AGENTS.md do repositorio"
+policy:
+  allow_implicit_invocation: false

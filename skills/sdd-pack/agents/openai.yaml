@@ -1,0 +1,5 @@
+interface:
+  display_name: "Module Pack"
+  short_description: "Documenta invariantes e blast radius de um modulo"
+policy:
+  allow_implicit_invocation: false

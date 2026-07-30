@@ -1,0 +1,5 @@
+interface:
+  display_name: "Spec"
+  short_description: "Le o card e escreve o delta da mudanca"
+policy:
+  allow_implicit_invocation: false

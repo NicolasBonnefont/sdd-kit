@@ -1,0 +1,5 @@
+interface:
+  display_name: "Validar"
+  short_description: "Confere spec, tasks e diff"
+policy:
+  allow_implicit_invocation: false

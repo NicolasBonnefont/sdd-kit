@@ -1,0 +1,5 @@
+interface:
+  display_name: "Pull Request"
+  short_description: "Monta a descricao do PR"
+policy:
+  allow_implicit_invocation: false

@@ -1,0 +1,5 @@
+interface:
+  display_name: "Fechar ciclo"
+  short_description: "Devolve o aprendizado ao Module Pack"
+policy:
+  allow_implicit_invocation: false

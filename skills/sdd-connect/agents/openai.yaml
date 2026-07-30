@@ -1,0 +1,5 @@
+interface:
+  display_name: "Conectar"
+  short_description: "Conecta a maquina ao GitHub"
+policy:
+  allow_implicit_invocation: false

@@ -1,0 +1,5 @@
+interface:
+  display_name: "Ajuda"
+  short_description: "Mapa dos comandos do ciclo SDD"
+policy:
+  allow_implicit_invocation: false

@@ -11,3 +11,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: bash tests/run.sh
+
+  commits:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - name: commitlint
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            npx commitlint --from "$BASE" --to "$HEAD" --verbose
+          else
+            npx commitlint --last --verbose
+          fi

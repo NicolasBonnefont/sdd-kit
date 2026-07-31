@@ -7,16 +7,22 @@ failed=0
 
 step() { printf '\n\033[1m%s\033[0m\n' "$1"; }
 
+# Os scripts shell do repositório. `.githooks/commit-msg` não tem extensão, então entra
+# por caminho. `node_modules/` é dependência de desenvolvimento — código de terceiro que
+# não passa pela nossa régua.
+FIND_SHELL=(-type f \( -name '*.sh' -o -path "$ROOT/.githooks/*" \)
+            -not -path '*/.git/*' -not -path '*/node_modules/*')
+
 step "sintaxe dos scripts"
 while IFS= read -r f; do
   bash -n "$f" || { echo "  ERRO de sintaxe: $f"; failed=1; }
-done < <(find "$ROOT" -name '*.sh' -not -path '*/.git/*')
+done < <(find "$ROOT" "${FIND_SHELL[@]}")
 [ "$failed" = "0" ] && echo "  ok"
 
 step "shellcheck"
 if command -v shellcheck >/dev/null 2>&1; then
   # SC1091: não segue `source` de caminho resolvido em runtime.
-  find "$ROOT" -name '*.sh' -not -path '*/.git/*' -print0 \
+  find "$ROOT" "${FIND_SHELL[@]}" -print0 \
     | xargs -0 shellcheck --severity=warning --exclude=SC1091 \
     || failed=1
   [ "$failed" = "0" ] && echo "  ok"
@@ -109,7 +115,7 @@ step "token residual da migração"
 # e o passo reprova texto legítimo. O spec da migração cita os nomes antigos por
 # definição, então `docs/superpowers/specs/` fica de fora.
 residual=$(grep -rniE '[l]icitar|[g]lab|[g]itlab|(^|[^a-z])[l]d-' "$ROOT" \
-             --exclude-dir=.git 2>/dev/null \
+             --exclude-dir=.git --exclude-dir=node_modules 2>/dev/null \
            | grep -v "^$ROOT/docs/superpowers/specs/")
 if [ -n "$residual" ]; then
   printf '%s\n' "$residual"

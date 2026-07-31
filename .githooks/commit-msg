@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Valida a mensagem contra Conventional Commits. As regras estão em commitlint.config.js.
+#
+# Ative uma vez por clone:
+#   git config core.hooksPath .githooks
+#
+# Sem husky de propósito: husky instala um script `prepare`, que o npm roda também no
+# `npx github:NicolasBonnefont/sdd-kit` do usuário final. A porta de instalação é bash
+# e continua assim.
+set -uo pipefail
+
+if [ ! -x node_modules/.bin/commitlint ]; then
+  echo "commitlint ausente — rode 'npm install' para validar a mensagem aqui." >&2
+  echo "Seguindo sem validar; o CI verifica de qualquer forma." >&2
+  exit 0
+fi
+
+exec node_modules/.bin/commitlint --edit "$1"

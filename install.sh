@@ -126,14 +126,18 @@ check() {
     stale=$(find "$dir" -maxdepth 1 -type l ! -exec test -e {} \; -print 2>/dev/null)
 
     installed=0
-    for name in $(ls "$SOURCE/skills"); do
+    for skilldir in "$SOURCE/skills"/*/; do
+      [ -d "$skilldir" ] || continue
+      name=$(basename "$skilldir")
       if [ -e "$dir/$name" ] || [ -L "$dir/$name" ]; then installed=1; break; fi
     done
     [ "$installed" = "1" ] || [ -n "$stale" ] || continue
     found=1
     echo "  $dir"
 
-    for name in $(ls "$SOURCE/skills"); do
+    for skilldir in "$SOURCE/skills"/*/; do
+      [ -d "$skilldir" ] || continue
+      name=$(basename "$skilldir")
       if [ -L "$dir/$name" ] && [ ! -e "$dir/$name" ]; then
         echo "    quebrado   /$name  → $(readlink "$dir/$name")"; problems=$((problems + 1))
       elif [ ! -e "$dir/$name" ]; then

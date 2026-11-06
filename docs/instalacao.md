@@ -1,6 +1,9 @@
 # Instalação
 
-## As duas portas de entrada
+O passo a passo por sistema — Linux, macOS, Windows e WSL — está no
+[README](../README.md#instalação). Aqui fica o que vale para todos.
+
+## As portas de entrada
 
 ```bash
 npx github:NicolasBonnefont/sdd-kit
@@ -10,28 +13,29 @@ npx github:NicolasBonnefont/sdd-kit
 curl -fsSL https://raw.githubusercontent.com/NicolasBonnefont/sdd-kit/main/bootstrap.sh | bash
 ```
 
-As duas fazem o mesmo: garantem um clone em `~/sdd-kit` e chamam o instalador. **Node
-não é dependência do ferramental** — só do atalho `npx`.
+A primeira funciona em qualquer terminal; a segunda é para Linux, macOS e WSL. As duas
+fazem o mesmo: garantem um clone em `~/sdd-kit` e chamam o instalador.
 
-O clone em local fixo é obrigatório, não conveniência: as skills são instaladas por
-symlink, e apontar para o diretório temporário do `npx` deixaria tudo quebrado na
-primeira limpeza de cache. Como efeito colateral bom, `npx` de novo atualiza tudo.
+O clone em local fixo é obrigatório, não conveniência: as skills são instaladas por link,
+e apontar para o diretório temporário do `npx` deixaria tudo quebrado na primeira limpeza
+de cache. Como efeito colateral bom, `npx` de novo atualiza tudo.
 
 ## Argumentos, para automação e CI
 
-Com argumentos o instalador não pergunta nada:
+Com argumentos o instalador não pergunta nada. No Windows, troque `~` por `$HOME` no
+PowerShell ou por `%USERPROFILE%` no cmd:
 
 ```bash
-~/sdd-kit/install.sh claude --global
-~/sdd-kit/install.sh cursor /caminho/do/projeto
-~/sdd-kit/install.sh --dir /caminho/de/skills
+node ~/sdd-kit/install.js claude --global
+node ~/sdd-kit/install.js cursor /caminho/do/projeto
+node ~/sdd-kit/install.js --dir /caminho/de/skills
 ```
 
 O instalador é idempotente e preserva configuração existente — rodar de novo não duplica
 hook nem apaga o que já estava no `settings.json`.
 
 > [!WARNING]
-> Instalação por projeto cria symlinks com caminho absoluto, específicos da máquina.
+> Instalação por projeto cria links com caminho absoluto, específicos da máquina.
 > Não commite `.claude/skills/` no repositório — cada pessoa roda o instalador na dela.
 
 ## Preciso reinstalar depois de um `git pull`?
@@ -39,31 +43,37 @@ hook nem apaga o que já estava no `settings.json`.
 Na dúvida, pergunte ao próprio instalador:
 
 ```bash
-~/sdd-kit/install.sh --check
+node ~/sdd-kit/install.js --check
 ```
 
-As skills são instaladas por symlink, então **mudança de conteúdo vale na hora**, sem
+As skills são instaladas por link, então **mudança de conteúdo vale na hora**, sem
 reinstalar. O que exige reinstalação é mudança de estrutura: skill nova (falta o
-symlink), hook novo (falta a entrada no `settings.json`) ou arquivo movido de lugar.
+link), hook novo (falta a entrada no `settings.json`) ou arquivo movido de lugar.
 O `--check` diferencia os casos e diz o que fazer.
 
 ## Requisitos
 
-**`jq`** — processador de JSON de linha de comando, obrigatório.
+**`git`** — o ciclo inteiro lê a branch e o diff por ele.
 
-Os harnesses conversam com hooks por JSON: entregam o evento no stdin e leem a decisão
-do stdout. O `jq` é quem extrai o caminho do arquivo do evento, monta a resposta de
-bloqueio com escape correto, lê o `.sdd.json` e mescla os hooks no `settings.json` sem
-sobrescrever a configuração que já existe. Fazer isso com `grep` e `sed` quebra no
-primeiro caminho com espaço ou acento.
-
-```bash
-sudo apt install jq      # Debian, Ubuntu
-sudo dnf install jq      # Fedora
-brew install jq          # macOS
-```
-
-**`git`** e **`bash`** — já presentes em qualquer máquina de desenvolvimento.
+**Node 18 ou superior** — hooks, validador e instalador são Node, porque é o que roda igual
+no sh, no cmd e no PowerShell. O hook é chamado como `node`, então o Node precisa estar no
+PATH do ambiente em que o agente roda.
 
 **`gh`** — [GitHub CLI](https://cli.github.com/), instalado pelo `/sdd-connect`.
 Necessário só para ler cards; o resto do ciclo funciona sem ele.
+
+## Links no Windows
+
+As skills são instaladas por junction, o link de diretório que o Windows cria sem permissão
+de administrador, então elas se comportam como o symlink dos outros sistemas: `git pull` no
+clone vale na hora.
+
+Os três revisores são arquivos, e link de arquivo exige modo de desenvolvedor. Sem ele o
+instalador copia. O efeito é um só: revisor alterado no clone só chega à instalação rodando
+o instalador de novo.
+
+## Windows e WSL são instalações separadas
+
+O WSL tem pasta pessoal, Node e agente próprios. Cada lado precisa do próprio clone e da
+própria instalação, e o `settings.json` registra caminho absoluto, então ele não atravessa de
+um sistema para o outro. O [README](../README.md#wsl-linux-dentro-do-windows) tem os passos.

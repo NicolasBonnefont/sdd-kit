@@ -5,7 +5,7 @@ O ciclo **lê** do GitHub por conta própria — issue, comentários, diff de PR
 issue são ações visíveis para o time inteiro, e nenhuma delas acontece por iniciativa do
 agente.
 
-A regra está escrita nas skills e enforçada pelo `hooks/gh-guard.sh`, que escala a
+A regra está escrita nas skills e enforçada pelo `hooks/gh-guard.js`, que escala a
 confirmação para você **mesmo que o comando esteja no allowlist de permissões** — é isso
 que impede que a proteção se perca numa configuração distraída.
 
@@ -33,5 +33,12 @@ O hook é específico do Claude Code, porque o protocolo de hooks é dele. Nos d
 harnesses a regra continua valendo pelas skills — o que muda é que a confirmação não
 é forçada pelo harness.
 
-A bateria de testes do hook vive em `tests/gh-guard.test.sh`. Mudança no hook exige caso
+## Bash e PowerShell
+
+No Windows, o Claude Code tem uma ferramenta PowerShell separada da Bash, e o hook é
+registrado para as duas. A avaliação também cobre o que muda por lá: `gh.exe`, maiúsculas
+(`GH pr create` executa o mesmo binário), operador de chamada (`& gh ...`) e `&` como
+separador de comando.
+
+A bateria de testes do hook vive em `tests/gh-guard.test.js`. Mudança no hook exige caso
 novo na bateria.

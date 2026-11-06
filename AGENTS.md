@@ -113,7 +113,7 @@ colidiria com qualquer outra coisa.
 /sdd-validate → spec ↔ tasks ↔ diff
 /sdd-review   → três revisores, um eixo por seção, sem rerank entre eles
 /sdd-pr       → descrição montada dos artefatos    ↓ gate humano de publicação
-/sdd-close    → aprendizado volta ao pack, spec arquivado   (depois do merge)
+/sdd-close    → aprendizado volta ao pack, spec arquivado   (antes do code review)
 ```
 
 O `/sdd-close` existe porque change spec descreve **mudança**, não **estado**. Sem ele o
@@ -194,6 +194,7 @@ echo '{"tool_input":{"file_path":"/repo/src/x.ts"}}' | hooks/scope-guard.sh
 
 - arquivo dentro do escopo → sem saída, exit 0
 - arquivo fora do escopo → JSON com `permissionDecision: "deny"`
+- spec ou Module Pack (`AGENTS.md`) fora do escopo → sem saída: são artefatos do ciclo
 - arquivo novo em diretório que ainda não existe → resolve a raiz subindo pelo caminho
   do próprio arquivo, nunca pelo cwd da sessão (que pode estar em outro repositório)
 - arquivo de outro repositório → sem saída, exit 0

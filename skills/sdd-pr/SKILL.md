@@ -58,5 +58,5 @@ O mesmo se aplica a comentar, aprovar ou fazer merge: nunca por iniciativa próp
 
 ## Ao terminar
 
-Informe a URL do PR e diga que o passo final do ciclo é `/sdd-close`, **depois que o PR
-for aprovado e mergeado** — é ele que devolve o aprendizado da mudança para o Module Pack.
+Informe a URL do PR e diga que o passo seguinte é `/sdd-close`, **antes do code review** —
+é ele que devolve o aprendizado da mudança para o Module Pack, e o commit entra neste PR.

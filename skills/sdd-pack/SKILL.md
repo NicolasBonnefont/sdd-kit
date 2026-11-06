@@ -53,7 +53,7 @@ Trabalhe por diff sobre o pack atual: leia o que está lá, veja o que mudou no 
 ## Fechando um ciclo de mudança
 
 Incorporar ao pack o que um card ensinou é etapa própria do ciclo, não observação de
-rodapé: **`/sdd-close`**, depois do merge. Ela colhe invariante nova, consumidor
+rodapé: **`/sdd-close`**, antes do code review. Ela colhe invariante nova, consumidor
 descoberto e armadilha encontrada, e arquiva o spec.
 
 É assim que a cobertura de conhecimento cresce mudança a mudança, em vez de depender de

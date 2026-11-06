@@ -96,7 +96,7 @@ if [ -f "$spec" ] && git rev-parse --git-dir >/dev/null 2>&1; then
     outside=0
     while IFS= read -r f; do
       [ -z "$f" ] && continue
-      case "$f" in "$specs_rel"/*) continue ;; esac
+      case "$f" in "$specs_rel"/*|AGENTS.md|*/AGENTS.md) continue ;; esac
       hit=1
       for p in "${patterns[@]}"; do
         # shellcheck disable=SC2053

@@ -40,8 +40,10 @@ spec="$spec_dir/spec.md"
 rel="${file#"$root"/}"
 specs_rel=$(sdd_specs_dir "$root")
 
+# Spec e Module Pack são artefatos do ciclo, não código da mudança: o /sdd-close atualiza
+# o pack nesta mesma branch, e o escopo do card não tem por que listá-lo.
 case "$rel" in
-  "$specs_rel"/*) allow ;;
+  "$specs_rel"/*|AGENTS.md|*/AGENTS.md) allow ;;
 esac
 
 patterns=$(sdd_scope_patterns "$spec")

@@ -1,7 +1,7 @@
 ---
 name: sdd-execute
 description: Decompõe o change spec em tasks com contrato de interface e implementa cada uma em loop TDD, com evidência real e ledger de progresso.
-compatibility: Requer git, bash e as ferramentas de teste do projeto
+compatibility: Requer git e as ferramentas de teste do projeto
 disable-model-invocation: true
 ---
 

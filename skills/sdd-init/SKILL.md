@@ -1,7 +1,7 @@
 ---
 name: sdd-init
 description: Prepara um repositório para o ciclo SDD — inspeciona o projeto, escreve o AGENTS.md da raiz e cria a estrutura de specs. Rode uma vez por repositório.
-compatibility: Requer git e bash
+compatibility: Requer git
 disable-model-invocation: true
 ---
 

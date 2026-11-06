@@ -1,7 +1,7 @@
 ---
 name: sdd-validate
 description: Verifica se o change spec e as tasks estão consistentes entre si e com o diff real da branch — seções obrigatórias, rastreabilidade task/requisito e aderência ao escopo declarado.
-compatibility: Requer git, bash e jq
+compatibility: Requer git e Node
 disable-model-invocation: true
 ---
 
@@ -12,25 +12,27 @@ Confere se o que foi escrito no spec continua batendo com o que está sendo feit
 ## Passo 1 — verificação estrutural
 
 Determinística, feita por script. **O caminho é absoluto**: seu diretório de trabalho é o
-repositório do projeto, não o desta skill, então `scripts/validate.sh` não resolve.
+repositório do projeto, não o desta skill, então `scripts/validate.js` não resolve.
 
-Localize o script e rode-o de dentro do repositório do projeto:
+O script é `skills/sdd-validate/scripts/validate.js`. Ache a primeira cópia que existir,
+trocando `~` pela pasta pessoal de quem está usando:
 
-```bash
-V=$(ls -d "${SDD_KIT_HOME:-$HOME/sdd-kit}"/skills/sdd-validate/scripts/validate.sh \
-       "$HOME"/.claude/skills/sdd-validate/scripts/validate.sh \
-       "$HOME"/.cursor/skills/sdd-validate/scripts/validate.sh \
-       "$HOME"/.gemini/config/skills/sdd-validate/scripts/validate.sh \
-       .claude/skills/sdd-validate/scripts/validate.sh \
-       .cursor/skills/sdd-validate/scripts/validate.sh \
-       .agents/skills/sdd-validate/scripts/validate.sh 2>/dev/null | head -1)
-bash "$V"
+- `$SDD_KIT_HOME`, quando a variável estiver definida
+- `~/sdd-kit`
+- `~/.claude/skills/sdd-validate/scripts/validate.js`, e o equivalente em `~/.cursor` e em
+  `~/.gemini/config`
+- `.claude/`, `.cursor/` ou `.agents/` dentro do projeto
+
+Rode-o com o Node, de dentro do repositório do projeto. Isso vale igual em qualquer terminal:
+
+```
+node "<caminho>/validate.js"
 ```
 
 Sem argumentos ele resolve o spec pela branch atual e detecta a branch base. Se precisar
-apontar explicitamente: `bash "$V" docs/specs/<id>-<slug> <branch-base>`.
+apontar explicitamente: `node "<caminho>/validate.js" docs/specs/<id>-<slug> <branch-base>`.
 
-Se `$V` sair vazio, a instalação está incompleta — mande rodar `install.sh --check` e pare.
+Se nenhuma cópia existir, a instalação está incompleta — mande rodar `npx github:NicolasBonnefont/sdd-kit --check` e pare.
 
 O script confere: seções obrigatórias do `spec.md`, se `Invariantes` e `Arquivos no escopo`
 estão realmente preenchidas, se cada task declara `Consumes`, `Produces`, `Requisito` e

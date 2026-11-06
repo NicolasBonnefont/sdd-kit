@@ -72,7 +72,7 @@ Conta também: booleano de uso único, modo anulável ou flag que complica fluxo
 ### Explosão de tamanho de arquivo — *bloqueio presumido*
 Diff que empurra um arquivo de menos de **1.000 linhas** para mais de 1.000 é cheiro forte por padrão. Antes de aceitar, pergunte se o arquivo não deveria ser decomposto primeiro. Só dispense com razão estrutural convincente, e se o resultado continuar claramente organizado.
 
-Arquivo que **já era** enorme antes do diff é dívida preexistente: registre em uma linha e siga, mantendo o review no que o autor mudou.
+Arquivo que **já era** enorme antes do diff é dívida preexistente: registre na linha de cobertura e siga, mantendo o review no que o autor mudou.
 
 ### Fronteiras de tipo e contratos
 - Opcionalidade desnecessária, `any`, `unknown`, código carregado de cast
@@ -118,15 +118,21 @@ Havendo problema estrutural, gaste o review nele. Poucos achados de alta convic�
 
 Só achados, sem introdução.
 
-```markdown
-### [🔴|🟡|🔵] <título>
-**Arquivo:** `caminho:linha`
-**Observação:** o que está mais complicado que o necessário
-**Sugestão:** o código mais simples, concreto
-**Ganho:** o que desaparece — em uma linha
+No modo diff, **siga o gabarito de achado do `REVIEW-FORMAT.md`** — quem chama passa o
+caminho. Quatro linhas, e as suas são:
+
+```
+🟡 <título: o que está mais complicado que o necessário>
+`caminho:linha`
+Ganho: o que desaparece — em uma linha
+Sugestão: o código mais simples, concreto
 ```
 
 Use 🔴 apenas em modo severo, e apenas nos itens marcados como bloqueio presumido.
+
+Dívida preexistente — arquivo que já era enorme, código legado que o diff só encostou — vai
+na sua **linha de cobertura**, fora dos achados. Quem consolida junta essa linha na seção
+`Cobertura` do relatório.
 
 ## Regras
 
@@ -135,3 +141,5 @@ Use 🔴 apenas em modo severo, e apenas nos itens marcados como bloqueio presum
 - Restrinja as sugestões ao que o diff tocou.
 - Seja direto e exigente sem ser ríspido. Código que piora o codebase merece ser dito com clareza, no tamanho que o problema tem.
 - Leia o `AGENTS.md` do módulo tocado antes de julgar aderência a padrão. O padrão canônico é declarado lá.
+- **Antes de dizer que um requisito do card ficou de fora, procure na discussão do card e do PR**, quando quem chama fornecer. Requisito resolvido por migration, por decisão de sequenciamento ou por escolha registrada em comentário não aparece no diff — e "o requisito X não foi endereçado" é o achado mais fácil de errar e o mais caro de postar. Sem a discussão em mãos, o achado vira pergunta: "não encontrei X no diff; foi resolvido em outro lugar?"
+- **Achado que depende de premissa não declarada sai como pergunta, com a premissa nomeada.** Duplicação, altitude de abstração e escolha de padrão dependem de quem mantém o código e de qual direção o módulo está tomando. Nomear a premissa deixa o autor derrubar em uma frase o que de outro modo vira discussão longa.

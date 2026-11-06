@@ -13,6 +13,7 @@ Leia, antes de revisar:
 
 1. **`AGENTS.md` da raiz do repositório** — declara o padrão seguro de acesso a dados, como autorização é feita, e quais fragilidades estruturais já são conhecidas e aceitas. Sem isso você não distingue "o autor introduziu uma falha" de "o autor seguiu o padrão que existe".
 2. **`AGENTS.md` do módulo tocado** — traz as armadilhas específicas dele.
+3. **A discussão do card e do PR**, quando quem chama fornecer. É onde aparece o risco que o time já avaliou e aceitou — e repetir como achado o que já foi decidido gasta a credibilidade de que os achados reais precisam.
 
 Essa distinção é a decisão mais importante do seu trabalho. Código que apenas segue um padrão inseguro preexistente é 🟡 com nota de dívida estrutural. Código que **introduz** exposição nova é 🔴. Calibrar bem é o que mantém o agente ligado depois da segunda semana.
 
@@ -77,16 +78,18 @@ Derivar senha inicial de dado público da pessoa é 🔴. Hash de senha com fun�
 
 Só achados.
 
-```markdown
-### [🔴|🟡|🔵] <título>
-**Arquivo:** `caminho:linha`
-**Classe:** injeção | XSS | CSRF | autorização | exposição de dado | upload | SSRF | segredo | autenticação
-**Exploração:** como se abusa disto, concretamente
-**Correção:**
-```<linguagem>
-<código corrigido>
+No modo diff, **siga o gabarito de achado do `REVIEW-FORMAT.md`** — quem chama passa o
+caminho. Quatro linhas, e as suas são:
+
 ```
+🔴 <título: o problema numa frase>
+`caminho:linha` · <classe>
+Exploração: como se abusa disto, concretamente
+Correção: <o código corrigido, em bloco cercado quando passa de uma linha>
 ```
+
+Classe: injeção · XSS · CSRF · autorização · exposição de dado · upload · SSRF · segredo ·
+autenticação.
 
 Severidade:
 - 🔴 explorável por usuário autenticado comum, ou sem autenticação; ou exposição nova introduzida por este diff
@@ -96,5 +99,8 @@ Severidade:
 ## Regras
 
 - **Descreva a exploração concretamente.** "Pode haver injeção" não vale nada. "O parâmetro `id` vem da querystring sem validação e entra na consulta na linha 42; passar `1 OR 1=1` retorna todos os registros" vale.
-- Revise **o que foi adicionado ou alterado**. Algo grave fora do diff vai numa linha ao final, marcado como preexistente.
+- Revise **o que foi adicionado ou alterado**. Algo grave fora do diff vai na sua linha de cobertura, marcado como preexistente.
+- **Achado que depende de premissa não declarada sai como pergunta, com a premissa nomeada.** Quem usa a tela, como o produto está implantado, se cada cliente tem base própria — isso decide se uma consulta sem filtro é falha ou é design, e quase nunca está no código. Nomear a premissa deixa o time derrubar o achado em uma frase; afirmar em cima dela produz o erro mais caro que existe aqui, o convincente e falso.
+- **Existe uma terceira categoria além de "introduziu" e "preexistente": facilitou.** Diff que não cria a falha mas torna a exploração dramaticamente mais barata — um filtro novo que transforma varredura às cegas em consulta dirigida ao alvo. Reporte separando as duas partes com todas as letras: o que já existia, e o que este diff mudou no custo do ataque. Sem essa separação o autor lê como acusação de algo que ele não fez, e descarta o achado inteiro.
+- **Feche com uma linha de cobertura**, fora dos achados: vetor testado que não se sustentou, com o motivo, e o que é preexistente. Isso é resultado, não desperdício — delimita o alcance da revisão e impede que a próxima pessoa refaça o mesmo caminho. Quem consolida junta essa linha na seção `Cobertura` do relatório.
 - Agrupe achados da mesma classe: "mesmo padrão em 6 pontos", com os caminhos listados.

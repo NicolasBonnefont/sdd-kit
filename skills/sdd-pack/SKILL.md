@@ -32,6 +32,9 @@ Escreva a partir do código. A documentação existente diverge dele com frequê
 5. Procure enums, constantes e validators: é onde as regras de negócio costumam estar escritas
 6. Leia o `AGENTS.md` da raiz do repositório: as fronteiras do sistema declaradas lá dizem quais consumidores o grep não vai encontrar
 
+Encontrando material sensível — `.env` e variantes, chave, certificado, dump de banco,
+fixture com dado real de pessoa —, reporte o caminho e siga sem o conteúdo.
+
 ## As cinco seções
 
 **Leia [`PACK-FORMAT.md`](PACK-FORMAT.md) e siga o gabarito.** Ele traz o conteúdo de cada
@@ -50,7 +53,7 @@ Trabalhe por diff sobre o pack atual: leia o que está lá, veja o que mudou no 
 ## Fechando um ciclo de mudança
 
 Incorporar ao pack o que um card ensinou é etapa própria do ciclo, não observação de
-rodapé: **`/sdd-close`**, depois do merge. Ela colhe invariante nova, consumidor
+rodapé: **`/sdd-close`**, antes do code review. Ela colhe invariante nova, consumidor
 descoberto e armadilha encontrada, e arquiva o spec.
 
 É assim que a cobertura de conhecimento cresce mudança a mudança, em vez de depender de

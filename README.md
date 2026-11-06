@@ -53,7 +53,7 @@ dependência do ferramental** — só do atalho `npx`.
 | `/sdd-validate` | quando quiser | Confere spec ↔ tasks ↔ diff |
 | `/sdd-review` | antes do push | Revisa sob três perspectivas, cada uma na própria seção |
 | `/sdd-pr` | por card | Monta a descrição do PR a partir dos artefatos e abre após autorização |
-| `/sdd-close` | depois do merge | Devolve o aprendizado ao Module Pack e arquiva o spec |
+| `/sdd-close` | antes do code review | Devolve o aprendizado ao Module Pack e arquiva o spec |
 
 Time novo: `/sdd-connect` → `/sdd-init` → `/sdd-pack` no módulo de maior movimento → e
 daí em diante o ciclo por card.
@@ -67,6 +67,10 @@ agente.
 
 A regra está escrita nas skills e enforçada pelo `gh-guard.sh`, que escala a confirmação
 para você **mesmo que o comando esteja no allowlist de permissões**.
+
+O mesmo hook escala a leitura que devolve credencial — valor de variável de CI, chave,
+token. Ler segredo é leitura, mas não é rotina, e o material que o agente carrega tem
+fronteira própria.
 
 ## Documentação
 

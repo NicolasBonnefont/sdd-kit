@@ -26,7 +26,7 @@ Sem o `/sdd-init`, os revisores trabalham sem conhecer o projeto e o ciclo rende
 ## O ciclo de um card
 
 ```
-/sdd-spec → gate humano → /sdd-execute → /sdd-review → /sdd-pr → merge → /sdd-close
+/sdd-spec → gate humano → /sdd-execute → /sdd-review → /sdd-pr → /sdd-close → code review → merge
 ```
 
 | Comando | Quando |
@@ -35,7 +35,7 @@ Sem o `/sdd-init`, os revisores trabalham sem conhecer o projeto e o ciclo rende
 | `/sdd-execute` | Spec aprovado. Decompõe em tasks e implementa em loop TDD, com evidência |
 | `/sdd-review` | Antes do push. Três perspectivas sobre o diff, em eixos separados |
 | `/sdd-pr` | Pronto para abrir. Monta a descrição a partir dos artefatos e espera sua autorização |
-| `/sdd-close` | Depois do merge. Devolve o aprendizado ao Module Pack e arquiva o spec |
+| `/sdd-close` | Ao finalizar a entrega, antes do code review. Devolve o aprendizado ao Module Pack e arquiva o spec |
 
 ## Conhecimento do módulo
 

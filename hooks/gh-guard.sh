@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # PreToolUse (Bash): nenhuma operação de escrita no GitHub acontece sem autorização
-# explícita de quem está usando.
+# explícita de quem está usando, e nenhuma leitura de credencial também.
 #
 # Abrir pull request, comentar, revisar, fazer merge, criar ou fechar issue são ações
 # que aparecem para o time inteiro e não podem ser tomadas por iniciativa do agente.
@@ -39,50 +39,76 @@ readonly_segment='^[[:space:]]*gh[[:space:]]+('\
 '|run[[:space:]]+(view|list|watch|download)'\
 '|workflow[[:space:]]+(view|list)'\
 '|search'\
-'|(label|secret|variable|cache)[[:space:]]+list'\
+'|(label|secret|cache)[[:space:]]+list'\
 '|gist[[:space:]]+(view|list)'\
 '|browse'\
 '|api'\
 ')([[:space:]]|$)'
 
-needs_ask=0
+# Segredo é leitura, e ler segredo não é rotina. Estes comandos devolvem material de
+# credencial em claro. `gh secret list` fica de fora porque só devolve nomes.
+credential_command='(^|[^a-zA-Z0-9_-])gh[[:space:]]+('\
+'variable[[:space:]]+(list|get)'\
+'|auth[[:space:]]+token'\
+'|auth[[:space:]]+status.*[[:space:]](--show-token|-t)'\
+')([[:space:]]|$)'
+
+# O mesmo material pela API: variável de Actions, segredo, alerta de secret scanning
+# (que traz o valor vazado), deploy key e webhook.
+credential_path='/(variables|secrets|secret-scanning|keys|hooks)([/?[:space:]"'"'"']|$)'
+
+# Em cadeia com as duas coisas a escrita prevalece, por isso só ela encerra o laço.
+reason=""
 while IFS= read -r segment; do
   # Segmento sem gh não interessa.
   printf '%s' "$segment" | grep -qE '(^|[^a-zA-Z0-9_-])gh([^a-zA-Z0-9_-]|$)' || continue
+
+  if printf '%s' "$segment" | grep -qE "$credential_command"; then
+    reason=credencial; continue
+  fi
 
   if printf '%s' "$segment" | grep -qE "$readonly_segment"; then
     # `gh api` é o único verbo da lista de leitura que escreve sem mudar de nome.
     if printf '%s' "$segment" | grep -qE '(^|[^a-zA-Z0-9_-])gh[[:space:]]+api([[:space:]]|$)'; then
       # Método de escrita declarado.
       if printf '%s' "$segment" | grep -qiE '(-X|--method)[[:space:]]*=?[[:space:]]*(POST|PUT|PATCH|DELETE)'; then
-        needs_ask=1; break
+        reason=escrita; break
       fi
-      # Armadilha do gh: a simples presença de campo (-f/-F/--field/--raw-field)
-      # promove a chamada a POST implicitamente, sem nenhum -X na linha.
-      if printf '%s' "$segment" | grep -qE '(^|[[:space:]])(-f|-F|--field|--raw-field)([[:space:]]|=|$)'; then
-        needs_ask=1; break
+      # Armadilha do gh: a simples presença de campo ou de corpo promove a chamada a POST
+      # implicitamente, sem nenhum -X na linha. A flag curta aceita valor colado (-ft=x)
+      # e agrupamento (-if t=x), então qualquer grupo curto com f ou F conta.
+      if printf '%s' "$segment" | grep -qE '(^|[[:space:]])(-[a-zA-Z]*[fF]|--field([[:space:]]|=|$)|--raw-field([[:space:]]|=|$)|--input([[:space:]]|=|$))'; then
+        reason=escrita; break
+      fi
+      if printf '%s' "$segment" | grep -qE "$credential_path"; then
+        reason=credencial
       fi
     fi
     continue
   fi
 
-  needs_ask=1; break
+  reason=escrita; break
 done <<< "$(printf '%s' "$command" | sed -E 's/(\&\&|\|\||;|\||\$\(|`)/\n/g')"
 
-[ "$needs_ask" = "0" ] && allow
+[ -z "$reason" ] && allow
 
-jq -n --arg cmd "$command" '
+if [ "$reason" = "credencial" ]; then
+  headline="Este comando lê material de credencial do GitHub."
+  detail="Valor de variável, segredo, chave e token entram no contexto do agente e \
+atravessam o provedor do modelo. Confirme apenas se você pediu esta leitura agora."
+else
+  headline="Esta ação escreve no GitHub e fica visível para o time."
+  detail="Abrir pull request, comentar, revisar ou fazer merge exige autorização \
+explícita de quem está conduzindo o trabalho. Confirme apenas se você pediu \
+esta ação agora — e prefira revisar o conteúdo antes."
+fi
+
+jq -n --arg cmd "$command" --arg headline "$headline" --arg detail "$detail" '
 {
   hookSpecificOutput: {
     hookEventName: "PreToolUse",
     permissionDecision: "ask",
-    permissionDecisionReason: (
-      "Esta ação escreve no GitHub e fica visível para o time.\n\n" +
-      "Comando: " + $cmd + "\n\n" +
-      "Abrir pull request, comentar, revisar ou fazer merge exige autorização " +
-      "explícita de quem está conduzindo o trabalho. Confirme apenas se você pediu " +
-      "esta ação agora — e prefira revisar o conteúdo antes."
-    )
+    permissionDecisionReason: ($headline + "\n\nComando: " + $cmd + "\n\n" + $detail)
   }
 }'
 

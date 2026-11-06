@@ -39,6 +39,10 @@ git -C "$A" checkout -q -b 915-auditoria-filtros
 expect libera 'dentro do escopo'              "$(ev "$A/src/b.ts" "$A")"
 expect deny   'fora do escopo'                "$(ev "$A/lib/c.ts" "$A")"
 expect libera 'o proprio spec'                "$(ev "$A/docs/specs/915-auditoria/spec.md" "$A")"
+# O /sdd-close atualiza o pack na branch do card, antes de arquivar o spec.
+expect libera 'module pack fora do escopo'    "$(ev "$A/lib/AGENTS.md" "$A")"
+expect libera 'agents da raiz fora do escopo' "$(ev "$A/AGENTS.md" "$A")"
+expect deny   'nome que so termina em AGENTS' "$(ev "$A/lib/NOTAS-AGENTS.md" "$A")"
 expect libera 'dir novo dentro do escopo'     "$(ev "$A/src/novo/sub/x.ts" "$A")"
 expect deny   'dir novo fora do escopo'       "$(ev "$A/lib/novo/y.ts" "$A")"
 

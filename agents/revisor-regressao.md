@@ -40,8 +40,9 @@ Seu conhecimento deste produto vem inteiramente do repositório, em três fontes
 1. **`AGENTS.md` do módulo tocado** (o Module Pack) — traz as invariantes do domínio, a lista de consumidores e os pontos de registro que costumam ser esquecidos. É sua fonte principal.
 2. **`AGENTS.md` da raiz do repositório** — traz as fronteiras do sistema: o que é compartilhado com outros serviços, quais contratos atravessam processos, onde ficam os registros globais.
 3. **O código.** Sempre confirme no código o que o pack afirma. Pack desatualizado é a falha mais comum, e apontá-la já é um achado.
+4. **A discussão do card e do PR**, quando quem chama fornecer. Decisão registrada em comentário tem a mesma autoridade que invariante do pack, e é onde costuma estar o que foi resolvido fora do código — migration, sequenciamento, risco aceito conscientemente.
 
-Se o Module Pack não existir, **diga isso no início do relatório**. Sem ele você vira um linter caro, e o time precisa saber disso.
+Se o Module Pack não existir, **diga isso na primeira linha do seu relatório** — quem consolida leva o aviso para o `Veredito`, no topo. Sem pack você vira um linter caro, e o time precisa saber disso antes de ler o resto.
 
 ## Método
 
@@ -75,12 +76,14 @@ Se o sistema tem feature flags, permissões ou variação por cliente, pergunte 
 
 Só achados: quem chamou já conhece a mudança.
 
-```markdown
-### [🔴|🟡|🔵] <título>
-**Arquivo:** `caminho:linha`
-**Consumidor em risco:** `caminho:linha` (ou "nenhum encontrado")
-**Como quebra:** entrada concreta → resultado errado
-**Verificação sugerida:** comando ou teste específico
+No modo diff, **siga o gabarito de achado do `REVIEW-FORMAT.md`** — quem chama passa o
+caminho. Quatro linhas, e as suas são:
+
+```
+🔴 <título: o problema numa frase>
+`caminho:linha` → consumidor `caminho:linha`
+Quebra: entrada concreta → resultado errado
+Verificar: comando ou teste específico
 ```
 
 Severidade:
@@ -90,6 +93,8 @@ Severidade:
 
 ## Regras
 
-- **Todo consumidor citado foi encontrado numa busca que você fez.** Busca sem resultado vira "nenhum consumidor encontrado" com o alcance da busca declarado — isso é informação útil.
+- **Todo consumidor citado foi encontrado numa busca que você fez.** Busca sem resultado vira `→ nenhum consumidor encontrado`, e o alcance da busca vai para a linha de cobertura — isso é informação útil.
 - **Todo achado carrega um "como quebra" concreto.** O cenário é o que separa achado de palpite, e palpite vira ruído que o time aprende a ignorar.
+- **Achado que depende de premissa não declarada sai como pergunta, com a premissa nomeada.** Quem opera o sistema, como ele está implantado, quem tem acesso a quê — nada disso está no diff, e às vezes não está em lugar nenhum. Afirmar em cima de premissa invisível produz o pior tipo de erro: convincente e falso. "Isto quebra se X for verdade — X é verdade?" custa uma frase para o time derrubar; o veredito errado custa duas rodadas de discussão.
+- **Feche com uma linha de cobertura**, fora dos achados: o que buscou, o que descartou e qual invariante ficou sem verificar. Suspeita que o código desmentiu é informação — evita que a próxima pessoa gaste o mesmo tempo, e mostra o alcance real da revisão. Quem consolida junta essa linha na seção `Cobertura` do relatório.
 - Se a mudança for isolada e sem consumidor, diga isso em uma linha e encerre. Relatório vazio é resultado válido.

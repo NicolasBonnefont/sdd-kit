@@ -1,14 +1,24 @@
 ---
 name: sdd-close
-description: Fecha um card depois do merge — incorpora ao Module Pack o que a mudança ensinou e arquiva o change spec, para que os deltas virem estado consolidado.
+description: Fecha um card ao finalizar a entrega, antes do code review — incorpora ao Module Pack o que a mudança ensinou e arquiva o change spec, para que os deltas virem estado consolidado.
 compatibility: Requer git e bash
 disable-model-invocation: true
 ---
 
 # /sdd-close
 
-Roda **depois que o PR foi mergeado**. É a etapa que impede o `docs/specs/` de virar um
-cemitério de deltas.
+Roda **ao finalizar a entrega, quando o PR vai para code review**. É a etapa que impede o
+`docs/specs/` de virar um cemitério de deltas.
+
+Não roda depois do merge por um motivo prático: mergeada a branch, quem implementou já está
+em outra coisa, e etapa que só pode ser executada quando ninguém mais tem a mão no código é
+etapa que não acontece. Rodando aqui, o commit entra no mesmo PR, e a atualização do pack
+passa pela mesma revisão humana que o código.
+
+Em troca, o aprendizado colhido aqui é o que se sabe **antes** da revisão humana. Se o
+revisor levantar invariante, consumidor ou armadilha que o pack não tinha, rode de novo
+depois de aplicar o retorno — a segunda passada é barata, porque o spec já está arquivado e
+só o delta muda.
 
 ## O problema que esta etapa resolve
 
@@ -65,6 +75,10 @@ Isso também tem efeito prático no ferramental: o `scope-guard` casa spec pela 
 diretório arquivado não é mais casado. Card antigo deixa de restringir escopo de trabalho
 novo.
 
+O mesmo efeito vale para este card: com o spec arquivado, o `scope-guard` deixa de confinar
+a branch. Correção pedida no code review segue sem essa rede, então confira o escopo
+rodando o `/sdd-validate` com o caminho do diretório arquivado como argumento.
+
 > Se o projeto configurou `specsDir` no `.sdd.json`, use aquele caminho.
 
 ## Passo 4 — reportar
@@ -80,7 +94,12 @@ que ou o pack já estava completo, ou ninguém está olhando.
 
 ## Regras
 
-- **Só rode depois do merge.** Antes disso o aprendizado ainda pode mudar.
+- **Rode ao finalizar a entrega, antes do code review** — é o último momento em que quem
+  implementou ainda tem a mão na branch. Havendo achado do revisor, rode de novo.
+- **Spec fora do git dispensa o passo 3.** Quando os artefatos do ciclo não são versionados
+  no repositório do time — decisão legítima, já que o método é individual e o repo é
+  compartilhado —, não há o que arquivar com `git mv`: mova o diretório no local onde ele
+  vive e siga. Os passos 1, 2 e 4 continuam valendo.
 - **Mexa apenas em documentação.** Código fica fora desta etapa.
 - Pack atualizado precisa de revisão humana igual ao pack novo — invariante errada dá
   confiança falsa. Aponte o que você inferiu e não conseguiu confirmar.

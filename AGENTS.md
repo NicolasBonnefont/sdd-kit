@@ -38,7 +38,35 @@ do erro aqui é o **oposto** do scope-guard: na dúvida, pergunte.
 Skill nova que toque no GitHub precisa repetir a regra no próprio texto. O hook é a
 rede de segurança, não a instrução.
 
-### 3. Portabilidade primeiro
+### 3. O que entra no contexto também tem fronteira
+
+A regra 2 governa o que sai do agente para o mundo. Esta governa o que entra nele.
+
+Todo material que o ciclo coleta — diff, arquivo de módulo, comentário de card — atravessa
+um processador terceiro: o provedor do modelo. O ferramental roda em qualquer harness
+compatível, e cada harness é um processador diferente, com termos e jurisdição próprios.
+Isso faz da fronteira uma decisão do time, e não algo que o agente resolve na hora.
+
+Fica fora do material coletado:
+
+- arquivo de ambiente versionado — `.env` e variantes
+- chave privada, certificado, keystore
+- dump de banco e fixture com dado real de pessoa
+- valor de variável de CI/CD e conteúdo de cofre
+
+Encontrando qualquer um deles no que ia enviar, o agente **reporta o caminho e segue sem o
+conteúdo**. Caminho é achado; conteúdo é vazamento. Arquivo de ambiente versionado, aliás,
+é achado de segurança que merece relatório — citando o nome do arquivo e o nome da chave,
+que bastam para agir, e deixando o valor fora.
+
+A regra vale igual para material que vem do GitHub: `gh api` alcança endpoint que devolve
+credencial, e o `gh-guard` escala a confirmação desses caminhos pelo mesmo motivo que
+escala escrita.
+
+Skill que colete material do repositório ou do GitHub repete essa fronteira no próprio
+texto, como a regra 2 exige para escrita.
+
+### 4. Portabilidade primeiro
 
 `skills/` e `agents/` precisam funcionar em qualquer harness compatível com o padrão
 [Agent Skills](https://agentskills.io). Só entra em `hooks/` o que é genuinamente
@@ -85,7 +113,7 @@ colidiria com qualquer outra coisa.
 /sdd-validate → spec ↔ tasks ↔ diff
 /sdd-review   → três revisores, um eixo por seção, sem rerank entre eles
 /sdd-pr       → descrição montada dos artefatos    ↓ gate humano de publicação
-/sdd-close    → aprendizado volta ao pack, spec arquivado   (depois do merge)
+/sdd-close    → aprendizado volta ao pack, spec arquivado   (antes do code review)
 ```
 
 O `/sdd-close` existe porque change spec descreve **mudança**, não **estado**. Sem ele o
@@ -166,6 +194,7 @@ echo '{"tool_input":{"file_path":"/repo/src/x.ts"}}' | hooks/scope-guard.sh
 
 - arquivo dentro do escopo → sem saída, exit 0
 - arquivo fora do escopo → JSON com `permissionDecision: "deny"`
+- spec ou Module Pack (`AGENTS.md`) fora do escopo → sem saída: são artefatos do ciclo
 - arquivo novo em diretório que ainda não existe → resolve a raiz subindo pelo caminho
   do próprio arquivo, nunca pelo cwd da sessão (que pode estar em outro repositório)
 - arquivo de outro repositório → sem saída, exit 0
@@ -178,11 +207,14 @@ jq -n '{tool_input:{command:"gh pr create --fill"}}' | hooks/gh-guard.sh
 ```
 
 - leitura (`view`, `list`, `diff`, `checks`, `status`, `checkout`, `auth status`, `api`
-  sem método de escrita e sem campo) → sem saída
+  sem método de escrita, sem campo e sem corpo) → sem saída
 - escrita (`pr create|comment|review|merge|close`, `issue create|comment|close`,
   `release create`, `repo create|delete`, `api -X POST|PUT|PATCH|DELETE`, e `api` com
-  `-f`/`-F`/`--field`, porque campo presente vira POST implícito) → `ask`
-- comando encadeado ou em pipe que contenha escrita em qualquer posição → `ask`
+  `-f`/`-F`/`--field`/`--raw-field`/`--input`, porque campo ou corpo presente vira POST
+  implícito — inclusive com o valor colado na flag) → `ask`
+- leitura de credencial (`variable list|get`, `auth token`, `auth status --show-token`,
+  `api` em `variables`, `secrets`, `secret-scanning`, `keys`, `hooks`) → `ask`, pela regra 3
+- comando encadeado ou em pipe que contenha escrita ou credencial em qualquer posição → `ask`
 - comando sem `gh` → sem saída
 
 Lembre que **só exit 2 ou JSON de `deny` bloqueiam**; exit 1 é tratado como erro

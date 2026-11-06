@@ -1,6 +1,6 @@
 ---
 name: sdd-review
-description: Revisa as mudanças da branch sob três perspectivas — regressão, segurança e qualidade — e consolida os achados por severidade.
+description: Revisa as mudanças da branch sob três perspectivas — regressão, segurança e qualidade — e reporta os achados um eixo por vez.
 compatibility: Requer git e bash; subagentes são opcionais
 disable-model-invocation: true
 ---
@@ -46,6 +46,41 @@ Identifique quais módulos foram tocados e leia o `AGENTS.md` de cada um. Leia t
 
 Se o diff passar de ~20 arquivos, pergunte se deve revisar tudo ou só um subconjunto.
 
+### A discussão é fonte, não contexto opcional
+
+Parte do que o card exige costuma ser resolvida **fora do código** — por migration, por
+decisão de sequenciamento, por escolha registrada em comentário. O diff não tem como
+mostrar isso, e o revisor que só olha o diff conclui que o requisito ficou de fora.
+
+Colete antes de disparar os revisores e grave junto do diff. Sem PR aberto, o card basta:
+
+```bash
+gh issue view <card> --comments
+gh pr view <pr> --comments
+gh api --paginate "repos/{owner}/{repo}/pulls/<pr>/comments"
+```
+
+A terceira chamada traz os comentários inline, que o `--comments` deixa de fora. As três são
+leitura pura, e os comentários do PR também dizem **o que já foi levantado**: repetir achado
+de outro revisor gasta a atenção do autor sem entregar nada.
+
+"O requisito X não foi endereçado" é o achado mais fácil de errar e o mais caro de postar:
+o autor responde com o link do comentário onde resolveu, e todo o resto do relatório passa
+a ser lido com desconfiança.
+
+### O que fica fora do material
+
+O diff e os comentários atravessam um processador terceiro — o provedor do modelo. Fica de
+fora: arquivo de ambiente versionado (`.env` e variantes), chave privada, certificado,
+keystore, dump de banco e fixture com dado real de pessoa.
+
+Havendo qualquer um deles no diff, **passe adiante o caminho e os nomes das chaves, e deixe
+os valores de fora**. Arquivo de ambiente versionado é problema de segurança que o revisor
+precisa ver, e o nome do arquivo com o nome da chave já bastam para agir.
+
+Comando que o `gh-guard` questionar por devolver credencial — variável de CI, chave, token —
+merece a pergunta respondida por quem conduz o trabalho.
+
 ## Passo 2 — aplicar os três revisores
 
 | Revisor | Foco |
@@ -60,43 +95,18 @@ Com `--modelo`, aplique-o na invocação de cada um. Sem o argumento, deixe cada
 
 **Se não suporta** (a maioria dos editores hoje): leia os três arquivos em `agents/` deste pacote e aplique cada perspectiva você mesmo, **em passadas separadas** sobre o mesmo diff. A separação importa — revisar as três dimensões de uma vez faz você achar menos em cada uma. Depois consolide como se viessem de três fontes.
 
-Passe a cada um o diff completo, o caminho dos Module Packs relevantes e o caminho do spec. Mande o material bruto: resumo feito por você já é uma triagem que enviesa o revisor.
+Passe a cada um o diff completo, a discussão coletada, o caminho dos Module Packs relevantes, o caminho do spec e o caminho do [`REVIEW-FORMAT.md`](REVIEW-FORMAT.md). Mande o material bruto: resumo feito por você já é uma triagem que enviesa o revisor.
 
-Peça a cada um um relatório de **até 400 palavras**. Teto de tamanho é o que mantém o achado denso e o relatório final legível.
+Peça a cada um o achado nas **quatro linhas do gabarito**. Forma fixa é o que mantém o achado denso; a contagem que chega ao relatório final é decidida no Passo 3.
 
 ## Passo 3 — reportar, um eixo por vez
 
-Três seções, uma por revisor, na ordem abaixo. **Cada eixo mantém os próprios achados e a
-própria ordem interna.**
+**Leia [`REVIEW-FORMAT.md`](REVIEW-FORMAT.md) e siga o gabarito.** Ele traz o cabeçalho com
+veredito e próxima ação, as quatro linhas do achado, o teto de cinco por eixo com a faixa
+`Depois`, e a seção `Cobertura`.
 
-```markdown
-# Review — <branch>
-
-## Regressão
-### [🔴|🟡|🔵] <título>
-**Arquivo:** `caminho:linha`
-**Consumidor em risco:** `caminho:linha`
-**Como quebra:** entrada concreta → resultado errado
-
-## Segurança
-### [🔴|🟡|🔵] <título>
-...
-
-## Qualidade
-### [🟡|🔵] <título>
-...
-
-**Pior achado por eixo:** regressão 🔴 · segurança — · qualidade 🟡
-```
-
-**Por que separado, e não uma lista única ordenada por severidade.** Consolidar por
-severidade faz um eixo desaparecer atrás do outro: dois 🔴 de segurança no topo empurram
-o eixo de qualidade para o fim da página, e ele deixa de ser lido. Os três eixos existem
-justamente porque uma mudança pode passar em dois e falhar no terceiro — e a única forma
-de isso continuar visível é cada um ter sua seção.
-
-Por isso o resumo final traz **o pior achado de cada eixo**, e não um vencedor único.
-Eleger um vencedor entre eixos é a reordenação que a separação existe para impedir.
+Três seções, uma por revisor, na ordem regressão → segurança → qualidade. **Cada eixo
+mantém os próprios achados e a própria ordem interna** — o gabarito explica por quê.
 
 Dentro de cada eixo, aí sim:
 
@@ -110,9 +120,9 @@ Dentro de cada eixo, aí sim:
   regressão em funcionalidade existente.
 - **Achado sem "como quebra" concreto vira 🔵.** Sem a entrada que produz o erro, é palpite.
 
-Achado que aparece em mais de um eixo fica **nos dois**, com uma linha dizendo que o outro
-eixo também o levantou. Concordância entre eixos é sinal, e some quando você deduplica
-entre eles.
+O que cada revisor investigou e descartou sai dos achados e vira **uma linha por eixo na
+seção `Cobertura`**. É informação de alcance, e no meio do fluxo ela disputa atenção com o
+achado que precisa de ação.
 
 ## Princípios que valem para os três revisores
 
@@ -121,9 +131,13 @@ entre eles.
 
 ## Ao terminar
 
-Mostre o resumo no chat, além do arquivo. Grave o relatório em `docs/specs/<id-do-card>-<slug>/review-<timestamp>.md` quando houver spec; senão, mostre só no chat.
+Mostre o resumo no chat, além do arquivo. Havendo spec, grave o relatório no caminho que o gabarito declara — ele respeita o `specsDir` do `.sdd.json`. Sem spec, o relatório vive só no chat.
 
 Havendo 🔴 em qualquer eixo, diga com clareza que o PR espera a correção.
+
+Encerre o chat repetindo a **próxima ação** do cabeçalho, como última linha: o arquivo e a
+linha do pior achado, num passo que cabe em dois minutos. Relatório que termina em
+diagnóstico deixa "por onde começo" para quem já gastou a atenção lendo.
 
 **Este review é local e fica local.** Publicar no GitHub — comentário, thread ou aprovação
 — exige que a pessoa peça, naquele momento. Terminar a revisão não é autorização para

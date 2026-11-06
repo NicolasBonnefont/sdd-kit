@@ -61,11 +61,11 @@ fi
 if [ -f "$tasks" ]; then
   echo "OK     tasks.md presente"
   total=$(grep -cE '^- \[[ x]\] ###' "$tasks" || true)
-  [ "${total:-0}" -gt 0 ]; check $? "tasks.md declara ao menos uma task ($total)"
+  check "$(( ${total:-0} > 0 ? 0 : 1 ))" "tasks.md declara ao menos uma task ($total)"
 
   for field in Consumes Produces Requisito Verificação; do
     n=$(grep -cE "^\s*\*\*$field:\*\*" "$tasks" || true)
-    [ "${n:-0}" -ge "${total:-1}" ]; check $? "todas as $total tasks têm **$field:** (achei $n)"
+    check "$(( ${n:-0} >= ${total:-1} ? 0 : 1 ))" "todas as $total tasks têm **$field:** (achei $n)"
   done
 
   done_n=$(grep -cE '^- \[x\] ###' "$tasks" || true)

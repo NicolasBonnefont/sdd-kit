@@ -69,7 +69,7 @@ abrir o PR.
 | "Quero revisar gastando menos" | `/sdd-review --modelo <nome>` |
 | "Mexi num módulo e aprendi coisas que não estavam documentadas" | `/sdd-close` |
 | "Entrei agora no time" | `/sdd-connect`, depois `/sdd-init` se o repositório ainda não tem `AGENTS.md` |
-| "Instalei mas os comandos sumiram" | `install.sh --check` no terminal |
+| "Instalei mas os comandos sumiram" | `npx github:NicolasBonnefont/sdd-kit --check` no terminal |
 
 ## Fora do ciclo
 

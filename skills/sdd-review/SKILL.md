@@ -1,7 +1,7 @@
 ---
 name: sdd-review
 description: Revisa as mudanças da branch sob três perspectivas — regressão, segurança e qualidade — e reporta os achados um eixo por vez.
-compatibility: Requer git e bash; subagentes são opcionais
+compatibility: Requer git; subagentes são opcionais
 disable-model-invocation: true
 ---
 
@@ -32,13 +32,20 @@ escolha é de quem está usando, não do ferramental.
 
 ## Passo 1 — montar o contexto
 
-```bash
-base=$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD | sed 's|origin/||')
-git diff --stat "${base:-master}"...HEAD
-git diff "${base:-master}"...HEAD
+Descubra a branch base. O comando devolve `origin/<base>`:
+
+```
+git symbolic-ref --quiet --short refs/remotes/origin/HEAD
 ```
 
-Nem todo repositório usa `master`. Se a detecção falhar, confira `.sdd.json` na raiz ou pergunte.
+Com ela em mãos:
+
+```
+git diff --stat <base>...HEAD
+git diff <base>...HEAD
+```
+
+Se a detecção falhar, confira `.sdd.json` na raiz ou pergunte.
 
 Se o diff estiver vazio, diga isso e pare.
 
@@ -54,7 +61,7 @@ mostrar isso, e o revisor que só olha o diff conclui que o requisito ficou de f
 
 Colete antes de disparar os revisores e grave junto do diff. Sem PR aberto, o card basta:
 
-```bash
+```
 gh issue view <card> --comments
 gh pr view <pr> --comments
 gh api --paginate "repos/{owner}/{repo}/pulls/<pr>/comments"

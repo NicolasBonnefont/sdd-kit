@@ -5,8 +5,8 @@
 #   git config core.hooksPath .githooks
 #
 # Sem husky de propósito: husky instala um script `prepare`, que o npm roda também no
-# `npx github:NicolasBonnefont/sdd-kit` do usuário final. A porta de instalação é bash
-# e continua assim.
+# `npx github:NicolasBonnefont/sdd-kit` do usuário final, e nada deve rodar antes do
+# bin/cli.js.
 set -uo pipefail
 
 if [ ! -x node_modules/.bin/commitlint ]; then

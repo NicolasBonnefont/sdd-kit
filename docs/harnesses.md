@@ -12,11 +12,11 @@ funcionam em qualquer produto que implemente o padrão.
 | `antigravity` | `.agents/skills/` | `~/.gemini/config/skills/` |
 | `copilot` | `.github/skills/` | — |
 
-Para qualquer outro harness compatível: `install.sh --dir <caminho-de-skills>`.
+Para qualquer outro harness compatível: `node install.js --dir <caminho-de-skills>`.
 
 ## O que o Claude Code ganha a mais
 
-Rodando `install.sh claude`, além das skills são instalados:
+Rodando `node install.js claude`, além das skills são instalados:
 
 - **Subagentes** em `.claude/agents/` — os três revisores rodam em paralelo, cada um no
   próprio contexto, em vez de sequencialmente no mesmo

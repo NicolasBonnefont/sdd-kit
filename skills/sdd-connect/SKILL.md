@@ -1,7 +1,7 @@
 ---
 name: sdd-connect
 description: Conecta esta máquina ao GitHub via gh para que os demais comandos leiam issues e abram pull requests. Rode uma vez por máquina.
-compatibility: Requer git, bash e jq; instala e autentica o gh
+compatibility: Requer git; instala e autentica o gh
 disable-model-invocation: true
 ---
 
@@ -13,7 +13,7 @@ Execute os passos em ordem e **pare no primeiro que falhar**, mostrando ao usuá
 
 ## Passo 1 — o `gh` está instalado?
 
-```bash
+```
 gh --version
 ```
 
@@ -26,10 +26,13 @@ Se não estiver, mostre ao usuário a opção adequada ao sistema dele e **peça
 | Arch | `sudo pacman -S github-cli` |
 | Qualquer Linux | baixar o binário em `https://github.com/cli/cli/releases` |
 | macOS | `brew install gh` |
+| Windows (cmd ou PowerShell) | `winget install --id GitHub.cli` |
+
+No Windows, abra um terminal novo depois de instalar: o que já estava aberto não enxerga o `gh`.
 
 ## Passo 2 — autenticar
 
-```bash
+```
 gh auth status
 ```
 
@@ -53,7 +56,7 @@ Autenticado não é o mesmo que ter acesso à organização. Prove com uma leitu
 
 Rode de dentro de um repositório já clonado, para que o `gh` resolva o repositório pelo remote:
 
-```bash
+```
 gh issue list --limit 1
 ```
 
@@ -72,7 +75,13 @@ Sem isto, o desenvolvedor aprova manualmente cada leitura e desiste do fluxo na 
       "Bash(gh pr view:*)",
       "Bash(gh pr list:*)",
       "Bash(gh pr diff:*)",
-      "Bash(gh auth status:*)"
+      "Bash(gh auth status:*)",
+      "PowerShell(gh issue view *)",
+      "PowerShell(gh issue list *)",
+      "PowerShell(gh pr view *)",
+      "PowerShell(gh pr list *)",
+      "PowerShell(gh pr diff *)",
+      "PowerShell(gh auth status *)"
     ]
   }
 }
@@ -80,8 +89,11 @@ Sem isto, o desenvolvedor aprova manualmente cada leitura e desiste do fluxo na 
 
 Some ao array `allow` existente, sem sobrescrever o que já está lá.
 
-**Só entram comandos de leitura, e isso não é negociável.** Nunca adicione `Bash(gh:*)`
-nem qualquer entrada que cubra escrita. Se o usuário pedir, explique por quê e ofereça a
+As entradas `PowerShell(...)` valem para o Claude Code no Windows; em outro sistema elas
+ficam sem efeito.
+
+**Só entram comandos de leitura, e isso não é negociável.** Nunca adicione `Bash(gh:*)`,
+`PowerShell(gh *)` nem qualquer entrada que cubra escrita. Se o usuário pedir, explique por quê e ofereça a
 lista de leitura acima no lugar.
 
 ## Nenhuma escrita no GitHub sem autorização
@@ -93,7 +105,7 @@ uma exige que a pessoa peça, naquele momento.
 Isso vale mesmo quando parece o passo óbvio seguinte: terminar uma implementação não
 autoriza abrir o PR; terminar um review não autoriza publicar os comentários.
 
-A regra é enforçada por hook (`gh-guard.sh`), que escala a confirmação para o usuário
+A regra é enforçada por hook (`gh-guard`), que escala a confirmação para o usuário
 mesmo que o comando esteja no allowlist. O hook é a rede, não a regra — a regra é esta.
 
 ## Se precisar do `--repo`

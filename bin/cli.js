@@ -2,10 +2,10 @@
 'use strict';
 
 // Porta de entrada via npx. Não instala nada por conta própria: garante um clone
-// em local estável e delega ao install.sh, que é a única implementação.
+// em local estável e delega ao install.js, que é a única implementação.
 //
 // O clone estável é obrigatório. O npx executa o pacote a partir de um diretório
-// temporário, e as skills são instaladas por symlink — apontar para o temporário
+// temporário, e as skills são instaladas por link — apontar para o temporário
 // deixaria tudo quebrado assim que o npm limpasse o cache.
 
 const { execFileSync, spawnSync } = require('node:child_process');
@@ -13,14 +13,16 @@ const { existsSync } = require('node:fs');
 const { homedir } = require('node:os');
 const { join } = require('node:path');
 
-const REPO = process.env.SDD_KIT_REPO || 'git@github.com:NicolasBonnefont/sdd-kit.git';
+// HTTPS porque o repositório é público: clonar por SSH exigiria chave configurada, o que
+// costuma faltar numa máquina Windows nova.
+const REPO = process.env.SDD_KIT_REPO || 'https://github.com/NicolasBonnefont/sdd-kit.git';
 const HOME = process.env.SDD_KIT_HOME || join(homedir(), 'sdd-kit');
 
 const run = (cmd, args, opts = {}) =>
     execFileSync(cmd, args, { stdio: 'inherit', ...opts });
 
 function ensureClone() {
-    if (existsSync(join(HOME, 'install.sh'))) {
+    if (existsSync(join(HOME, '.git'))) {
         try {
             run('git', ['-C', HOME, 'pull', '--ff-only', '--quiet']);
         } catch {
@@ -44,7 +46,14 @@ function main() {
 
     ensureClone();
 
-    const result = spawnSync(join(HOME, 'install.sh'), process.argv.slice(2), {
+    const installer = join(HOME, 'install.js');
+    if (!existsSync(installer)) {
+        console.error(`  ${HOME} está numa versão antiga e não consegui atualizar.`);
+        console.error('  Atualize esse clone com git pull e rode de novo.');
+        process.exit(1);
+    }
+
+    const result = spawnSync(process.execPath, [installer, ...process.argv.slice(2)], {
         stdio: 'inherit',
     });
     process.exit(result.status === null ? 1 : result.status);

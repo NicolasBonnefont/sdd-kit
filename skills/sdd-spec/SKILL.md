@@ -1,7 +1,7 @@
 ---
 name: sdd-spec
 description: Lê o card no GitHub e escreve o change spec da mudança — comportamento atual, alvo, invariantes, fora de escopo e critério de verificação.
-compatibility: Requer git, bash e gh autenticado para ler o card
+compatibility: Requer git e gh autenticado para ler o card
 disable-model-invocation: true
 ---
 
@@ -13,7 +13,7 @@ Argumento: o número do card. Sem argumento, pergunte.
 
 ## Passo 1 — ler o card
 
-```bash
+```
 gh issue view <numero> --comments
 ```
 

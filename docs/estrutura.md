@@ -7,12 +7,12 @@ skills/<nome>/*-FORMAT.md    Gabaritos, carregados só quando a skill precisa de
 skills/<nome>/agents/        Adaptador por harness — hoje openai.yaml, para o Codex
 agents/                      Portável — os três revisores como prompt. Claude Code os
                              carrega como subagentes; os demais leem como instrução
-lib/lib.sh                   Portável — configuração, detecção de branch base e
+lib/lib.js                   Portável — configuração, detecção de branch base e
                              resolução de spec. Usado por hooks E por skills
 hooks/                       Claude Code apenas — o protocolo de hooks é dele
-install.sh                   Instalador: interativo sem argumentos, direto com eles
-bootstrap.sh                 Entrada por curl — clona e delega ao install.sh
-bin/cli.js                   Entrada por npx — clona e delega ao install.sh
+install.js                   Instalador: interativo sem argumentos, direto com eles
+bootstrap.sh                 Entrada por curl — clona e delega ao install.js
+bin/cli.js                   Entrada por npx — clona e delega ao install.js
 ```
 
 `lib/` não é opcional: o `sdd-validate` depende dele em qualquer harness. Só `hooks/`
@@ -21,9 +21,10 @@ bin/cli.js                   Entrada por npx — clona e delega ao install.sh
 ## Suíte
 
 ```bash
-bash tests/run.sh
+node tests/run.js
 ```
 
-É o que o CI roda: sintaxe, shellcheck, frontmatter contra a spec Agent Skills,
-acoplamento com produto, referência a comando inexistente e as baterias dos hooks.
+É o que o CI roda, em Linux e em Windows: sintaxe, shellcheck, frontmatter contra a spec
+Agent Skills, acoplamento com produto, referência a comando inexistente e as baterias dos
+hooks e do instalador.
 Mudança em hook exige caso novo na bateria.

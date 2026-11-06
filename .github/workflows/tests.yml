@@ -7,10 +7,36 @@ on:
 
 jobs:
   suite:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-      - run: bash tests/run.sh
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node tests/run.js
+
+  # A suíte prova o comportamento; este job prova a instalação de verdade, em cada terminal
+  # do Windows, sem bash no caminho.
+  windows-terminal:
+    strategy:
+      fail-fast: false
+      matrix:
+        shell: [cmd, pwsh, powershell]
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: ${{ matrix.shell }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node install.js claude --global
+      - run: node install.js --check
 
   commits:
     runs-on: ubuntu-latest

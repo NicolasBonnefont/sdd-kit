@@ -71,6 +71,9 @@ O pack é o que permite preencher **Invariantes** com algo real em vez de genér
 
 Leia o código antes de escrever. O bloco "Comportamento atual" precisa refletir o que o sistema faz hoje, não o que a issue supõe que ele faz. Divergência entre os dois é o achado mais valioso desta etapa — registre.
 
+Encontrando material sensível — `.env` e variantes, chave, certificado, dump de banco,
+fixture com dado real de pessoa —, reporte o caminho e siga sem o conteúdo.
+
 ## Passo 6 — escrever
 
 **Leia [`SPEC-FORMAT.md`](SPEC-FORMAT.md) e siga o gabarito.** Ele traz as seis seções, o

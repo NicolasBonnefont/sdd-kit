@@ -69,7 +69,6 @@ expect libera 'gh search repos spec-driven'
 expect libera 'gh search code needle'
 expect libera 'gh label list'
 expect libera 'gh secret list'
-expect libera 'gh variable list'
 expect libera 'gh cache list'
 expect libera 'gh gist view abc123'
 expect libera 'gh gist list'
@@ -77,6 +76,10 @@ expect libera 'gh browse'
 expect libera 'gh api repos/o/r/issues'
 expect libera 'gh api -X GET repos/o/r/issues'
 expect libera 'gh api repos/o/r/pulls --paginate --jq ".[].number"'
+expect libera 'gh api --paginate "repos/{owner}/{repo}/pulls/7/comments"'
+expect libera 'gh api -i repos/o/r/issues'
+expect libera 'gh api repos/o/r/actions/runs'
+expect libera 'gh auth status --hostname github.com'
 
 # Cadeia inteiramente de leitura continua liberada — o guard não é um pedágio.
 expect libera 'gh pr view 1 && gh pr view 2'
@@ -145,6 +148,38 @@ expect ask 'gh api repos/o/r/issues -F body=@corpo.md'
 expect ask 'gh api repos/o/r/issues --field title=x'
 expect ask 'gh api repos/o/r/issues --raw-field body=texto'
 
+# O valor colado na flag e o agrupamento de flags curtas são o mesmo campo para o gh.
+expect ask 'gh api repos/o/r/issues -ftitle=x'
+expect ask 'gh api repos/o/r/issues -Fbody=@corpo.md'
+expect ask 'gh api repos/o/r/issues -if title=x'
+
+# Corpo vindo de arquivo também promove a POST, sem campo e sem -X.
+expect ask 'gh api repos/o/r/issues --input corpo.json'
+expect ask 'gh api repos/o/r/issues --input=corpo.json'
+
+# --- leitura de credencial: deve perguntar ------------------------------------
+# Ler segredo não é rotina. Estes caminhos devolvem material de credencial, e por isso
+# saem do que o allowlist dispensa de confirmação. `gh secret list` fica na leitura:
+# ele só devolve nomes.
+expect ask 'gh variable list'
+expect ask 'gh variable get NIVEL'
+expect ask 'gh auth token'
+expect ask 'gh auth status --show-token'
+expect ask 'gh auth status -t'
+expect ask 'gh api repos/o/r/actions/variables'
+expect ask 'gh api repos/o/r/actions/variables/NIVEL'
+expect ask 'gh api "repos/o/r/actions/variables?per_page=100"'
+expect ask 'gh api orgs/o/actions/variables'
+expect ask 'gh api repos/o/r/environments/prod/variables'
+expect ask 'gh api repos/o/r/actions/secrets'
+expect ask 'gh api repos/o/r/dependabot/secrets'
+expect ask 'gh api repos/o/r/secret-scanning/alerts'
+expect ask 'gh api repos/o/r/keys'
+expect ask 'gh api repos/o/r/hooks'
+expect ask 'gh api repos/o/r/hooks/1/config'
+expect ask 'gh api orgs/o/hooks'
+expect ask 'gh issue list && gh api repos/o/r/actions/variables'
+
 # --- o bypass que a revisão externa encontrou --------------------------------
 # Cadeia que COMEÇA com leitura e termina em escrita. Passava antes da correção,
 # porque a regex de leitura estava ancorada no início e avaliava a string inteira.
@@ -167,6 +202,26 @@ expect_raw libera '{}'                   'JSON sem tool_input'
 expect_raw libera '{"tool_input":{}}'    'tool_input sem command'
 expect_raw libera '{"tool_input":{"command":""}}' 'command vazio'
 expect_raw libera 'isto nao e json'      'stdin que nao e JSON'
+
+# --- o motivo mostrado precisa ser verdadeiro ---------------------------------
+# Quem confirma decide pelo texto: leitura de credencial descrita como escrita ensina a
+# ignorar a pergunta. Em cadeia com as duas coisas, a escrita prevalece.
+expect_reason() { # <trecho esperado> <comando>
+  local got; got=$(jq -n --arg c "$2" '{tool_input:{command:$c}}' | bash "$HOOK" 2>/dev/null \
+    | jq -r '.hookSpecificOutput.permissionDecisionReason // empty')
+  if printf '%s' "$got" | grep -q "$1"; then
+    pass=$((pass + 1))
+  else
+    fail=$((fail + 1))
+    printf '  FALHOU  motivo sem "%s"  %s\n' "$1" "$2"
+  fi
+}
+
+expect_reason 'lê material de credencial' 'gh api repos/o/r/actions/variables'
+expect_reason 'lê material de credencial' 'gh auth token'
+expect_reason 'escreve no GitHub' 'gh pr create --fill'
+expect_reason 'escreve no GitHub' 'gh api -X POST repos/o/r/actions/variables'
+expect_reason 'escreve no GitHub' 'gh api repos/o/r/hooks && gh pr create --fill'
 
 printf '\n  %d passou, %d falhou\n' "$pass" "$fail"
 [ "$fail" = "0" ]

@@ -68,6 +68,10 @@ agente.
 A regra está escrita nas skills e enforçada pelo `gh-guard.sh`, que escala a confirmação
 para você **mesmo que o comando esteja no allowlist de permissões**.
 
+O mesmo hook escala a leitura que devolve credencial — valor de variável de CI, chave,
+token. Ler segredo é leitura, mas não é rotina, e o material que o agente carrega tem
+fronteira própria.
+
 ## Documentação
 
 Sem site de docs por enquanto — tudo vive em [docs/](./docs).

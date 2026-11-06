@@ -51,6 +51,9 @@ Descubra sozinho o que der. Só pergunte o que o repositório não revela.
 - Os dez maiores arquivos. Concentração de tamanho é concentração de risco
 - Divergências entre a documentação existente e o código. **Registre cada uma** — é o achado mais valioso desta etapa, porque documentação errada faz agente gerar código quebrado
 
+Encontrando material sensível — `.env` e variantes, chave, certificado, dump de banco,
+fixture com dado real de pessoa —, reporte o caminho e siga sem o conteúdo.
+
 ## Passo 2 — escreva o `AGENTS.md` da raiz
 
 **Leia [`AGENTS-FORMAT.md`](AGENTS-FORMAT.md) e siga o gabarito.** Ele traz as oito seções,

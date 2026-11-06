@@ -109,7 +109,7 @@ require_jq
 # --- diagnóstico --------------------------------------------------------------
 
 check() {
-  local problems=0 found=0 dir name settings_file stale installed path registered
+  local problems=0 found=0 dir name skill settings_file stale installed path registered
 
   bold ""
   bold "  sdd-kit — diagnóstico"
@@ -126,14 +126,16 @@ check() {
     stale=$(find "$dir" -maxdepth 1 -type l ! -exec test -e {} \; -print 2>/dev/null)
 
     installed=0
-    for name in $(ls "$SOURCE/skills"); do
+    for skill in "$SOURCE"/skills/*/; do
+      name=$(basename "$skill")
       if [ -e "$dir/$name" ] || [ -L "$dir/$name" ]; then installed=1; break; fi
     done
     [ "$installed" = "1" ] || [ -n "$stale" ] || continue
     found=1
     echo "  $dir"
 
-    for name in $(ls "$SOURCE/skills"); do
+    for skill in "$SOURCE"/skills/*/; do
+      name=$(basename "$skill")
       if [ -L "$dir/$name" ] && [ ! -e "$dir/$name" ]; then
         echo "    quebrado   /$name  → $(readlink "$dir/$name")"; problems=$((problems + 1))
       elif [ ! -e "$dir/$name" ]; then

@@ -9,7 +9,8 @@ agents/                      Portável — os três revisores como prompt. Claud
                              carrega como subagentes; os demais leem como instrução
 lib/lib.js                   Portável — configuração, detecção de branch base e
                              resolução de spec. Usado por hooks E por skills
-hooks/                       Claude Code apenas — o protocolo de hooks é dele
+hooks/                       Claude Code apenas — o protocolo de hooks é dele. Os .sh
+                             são pontes para o .js, para quem instalou a versão em bash
 install.js                   Instalador: interativo sem argumentos, direto com eles
 bootstrap.sh                 Entrada por curl — clona e delega ao install.js
 bin/cli.js                   Entrada por npx — clona e delega ao install.js

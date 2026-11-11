@@ -16,7 +16,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const readline = require('node:readline/promises');
-const { toPosix, which } = require('./lib/lib.js');
+const { relativeTo, toPosix, which } = require('./lib/lib.js');
 
 const SOURCE = __dirname;
 const HOME = os.homedir();
@@ -100,23 +100,44 @@ function linkOrCopy(source, dest, type) {
 // Barra normal funciona no sh, no Git Bash, no PowerShell e no cmd.
 const hookCommand = (name) => `node "${toPosix(path.join(SOURCE, 'hooks', `${name}.js`))}"`;
 
+// Aspas duplas não seguram `$` e crase no sh e no PowerShell, nem `%` no cmd. Num caminho
+// com eles o shell reescreve o comando registrado, e o hook morre sem bloquear nada.
+const UNSAFE_PATH = /[$`%"\\]/;
+
 // O arquivo que o comando registrado executa, quando dá para saber. Comando de outra
-// ferramenta, como `npx prettier`, não aponta para caminho nenhum e fica como está.
+// ferramenta, como `npx prettier` ou `node "$CLAUDE_PROJECT_DIR/x.js"`, não aponta para
+// caminho absoluto nenhum e fica como está.
 function hookTarget(command) {
-  const quoted = command.match(/^node(?:\.exe)?\s+"([^"]+)"/);
-  if (quoted) return quoted[1];
-  const first = command.split(' ')[0];
-  return path.isAbsolute(first) ? first : null;
+  const quoted = command.match(/^(?:node(?:\.exe)?\s+)?"([^"]+)"/);
+  const candidate = quoted ? quoted[1] : command.split(' ')[0];
+  return path.isAbsolute(candidate) ? candidate : null;
 }
 
-// Entrada substituível é a que aponta para dentro desta fonte, ou para um arquivo que não
-// existe mais — sobra de instalação anterior. Casar por nome de script apagaria a entrada
-// de outra ferramenta que use o mesmo basename.
+// Hook do kit é o arquivo com o nome de um dos três dentro de uma pasta `hooks`. O `.sh` é
+// o da versão em bash, que só repassa ao `.js`. `npm run format` não é hook do kit.
+function kitHook(command) {
+  const target = command && hookTarget(command);
+  if (!target || path.basename(path.dirname(target)) !== 'hooks') return null;
+  const match = path.basename(target).match(/^(scope-guard|gh-guard|format)\.(js|sh)$/);
+  return match ? { name: match[1], target, legacy: match[2] === 'sh' } : null;
+}
+
+function realOrNull(p) {
+  try {
+    return fs.realpathSync.native(p);
+  } catch {
+    return null;
+  }
+}
+
+// Substituível é o hook do kit que aponta para esta fonte ou para arquivo que não existe
+// mais, sobra de instalação anterior. A comparação é pelo caminho real, que no Windows
+// ignora maiúscula e nome curto. Hook de outra ferramenta nunca é substituível.
 function isReplaceable(command) {
-  if (!command) return false;
-  if (toPosix(command).includes(`${toPosix(SOURCE)}/hooks/`)) return true;
-  const target = hookTarget(command);
-  return Boolean(target) && !fs.existsSync(target);
+  const hook = kitHook(command);
+  if (!hook) return false;
+  const real = realOrNull(hook.target);
+  return !real || relativeTo(realOrNull(SOURCE), real) !== null;
 }
 
 function readSettings(file) {
@@ -135,8 +156,13 @@ function registeredCommands(settings) {
 
 function registerHooks(settingsFile) {
   const settings = readSettings(settingsFile);
-  const keep = (entries) => (entries || [])
-    .filter((entry) => !isReplaceable(entry.hooks?.[0]?.command));
+  // Sai só o hook substituível. O grupo continua enquanto tiver hook de outra ferramenta.
+  const keep = (entries) => (entries || []).flatMap((entry) => {
+    if (!Array.isArray(entry.hooks)) return [entry];
+    const hooks = entry.hooks.filter((hook) => !isReplaceable(hook.command));
+    if (hooks.length === entry.hooks.length) return [entry];
+    return hooks.length > 0 ? [{ ...entry, hooks }] : [];
+  });
   const entry = (matcher, name) => ({
     matcher,
     hooks: [{ type: 'command', command: hookCommand(name) }],
@@ -253,8 +279,8 @@ function checkSkills(dir) {
 }
 
 function checkHooks(settingsFile) {
-  const commands = registeredCommands(readSettings(settingsFile));
-  if (!commands.some((command) => HOOKS.some((name) => command.includes(name)))) return 0;
+  const hooks = registeredCommands(readSettings(settingsFile)).map(kitHook).filter(Boolean);
+  if (hooks.length === 0) return 0;
 
   let problems = 0;
   console.log(`  ${settingsFile}`);
@@ -262,13 +288,16 @@ function checkHooks(settingsFile) {
     // Confere o caminho REGISTRADO, e não o do repositório: entrada que sobrou de
     // instalação anterior aponta para arquivo que já saiu do lugar, e é exatamente
     // esse caso que precisa aparecer aqui.
-    const registered = commands.find((command) => command.includes(name));
-    const target = registered && hookTarget(registered);
-    if (!registered) {
+    const mine = hooks.filter((hook) => hook.name === name);
+    const hook = mine.find((item) => !item.legacy) || mine[0];
+    if (!hook) {
       console.log(`    faltando   ${name}.js`);
       problems += 1;
-    } else if (!target || !fs.existsSync(target)) {
-      console.log(`    quebrado   ${name}.js  → ${registered}`);
+    } else if (!fs.existsSync(hook.target)) {
+      console.log(`    quebrado   ${name}.js  → ${hook.target}`);
+      problems += 1;
+    } else if (hook.legacy) {
+      console.log(`    antigo     ${name}.sh  → ${hook.target}`);
       problems += 1;
     } else {
       console.log(`    ok         ${name}.js`);
@@ -420,6 +449,11 @@ async function main() {
   if (args.length === 0 && !process.stdin.isTTY) usage();
 
   const options = args.length === 0 ? await interactive() : parseArguments(args);
+  if (options.harness === 'claude' && UNSAFE_PATH.test(toPosix(SOURCE))) {
+    console.error(`  O caminho ${SOURCE} tem $, crase, %, aspas ou contrabarra,`);
+    console.error('  que o shell reinterpreta no comando do hook. Mova o clone e rode de novo.');
+    process.exit(1);
+  }
   installSkills(resolveTarget(options));
 
   if (options.harness === 'claude') {

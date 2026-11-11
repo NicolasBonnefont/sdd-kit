@@ -80,8 +80,9 @@ user-invoked nos dois ou em nenhum — a suíte reprova divergência.
 **Sistema também é portabilidade.** O ciclo roda em Linux, macOS, Windows e WSL, no cmd e no
 PowerShell tanto quanto no bash. Por isso script é Node, sem bash e sem `jq`, e skill manda
 rodar `git`, `gh` e `node` em forma que vale em qualquer terminal. O que varia de sistema fica
-concentrado em `lib/lib.js`. Shell sobra só no `bootstrap.sh` e no hook local de commit, que
-não fazem parte do ciclo. A suíte roda em Windows no CI e reprova skill que volte a exigir
+concentrado em `lib/lib.js`. Shell sobra só no `bootstrap.sh`, no hook local de commit e nas
+pontes `hooks/*.sh`, que só repassam ao `.js` para quem instalou a versão em bash. Nada disso
+faz parte do ciclo. A suíte roda em Windows no CI e reprova skill que volte a exigir
 bash ou `jq`.
 
 Antes de adicionar qualquer coisa, pergunte: isto funciona no Cursor e no Antigravity?

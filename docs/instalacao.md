@@ -51,6 +51,11 @@ reinstalar. O que exige reinstalação é mudança de estrutura: skill nova (fal
 link), hook novo (falta a entrada no `settings.json`) ou arquivo movido de lugar.
 O `--check` diferencia os casos e diz o que fazer.
 
+Quem instalou a versão em bash tem o `settings.json` apontando para `hooks/*.sh`. Esses
+arquivos continuam no clone como ponte para o `.js`, então as guardas seguem de pé depois do
+`git pull`, desde que o Node esteja instalado. O `--check` marca o registro como `antigo`, e
+rodar o instalador de novo troca pelo `.js`.
+
 ## Requisitos
 
 **`git`** — o ciclo inteiro lê a branch e o diff por ele.

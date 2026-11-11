@@ -4,7 +4,8 @@
 // Bateria do instalador, do validador e do hook de formatação, de ponta a ponta.
 //
 // Tudo roda dentro de uma pasta pessoal temporária, com espaço e acento no nome: é a forma
-// real de caminho no Windows, e foi nela que o registro de hook quebrava em silêncio.
+// real de caminho no Windows, e foi nela que o registro de hook quebrava em silêncio. O kit
+// também é copiado para uma pasta assim, porque é o caminho dele que vai para o registro.
 
 const { execFileSync, spawnSync } = require('node:child_process');
 const fs = require('node:fs');
@@ -12,11 +13,13 @@ const os = require('node:os');
 const path = require('node:path');
 
 const ROOT = path.join(__dirname, '..');
-const INSTALL = path.join(ROOT, 'install.js');
+const isWindows = process.platform === 'win32';
 const CLI = path.join(ROOT, 'bin', 'cli.js');
 const VALIDATE = path.join(ROOT, 'skills', 'sdd-validate', 'scripts', 'validate.js');
 const FORMAT = path.join(ROOT, 'hooks', 'format.js');
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'sdd tools '));
+const KIT = path.join(TMP, 'kit do João');
+const INSTALL = path.join(KIT, 'install.js');
 const HOME = path.join(TMP, 'João Silva');
 const SKILLS = path.join(HOME, '.claude', 'skills');
 const SETTINGS = path.join(HOME, '.claude', 'settings.json');
@@ -44,6 +47,10 @@ const commandFor = (settings, name) => allHooks(settings)
   .find((command) => command.includes(name));
 
 fs.mkdirSync(HOME, { recursive: true });
+const copyKit = (dest, parts) => parts.forEach((part) => fs.cpSync(path.join(ROOT, part), path.join(dest, part), {
+  recursive: true,
+}));
+copyKit(KIT, ['install.js', 'lib', 'hooks', 'skills', 'agents']);
 
 // --- instalação global --------------------------------------------------------
 let result = node(INSTALL, ['claude', '--global']);
@@ -76,9 +83,20 @@ const foreign = { matcher: 'Bash', hooks: [{ type: 'command', command: 'npx pret
 const sibling = path.join(HOME, 'outra-ferramenta.sh');
 fs.writeFileSync(sibling, '');
 const foreignFile = { matcher: 'Bash', hooks: [{ type: 'command', command: `"${sibling}"` }] };
-const stale = { matcher: 'Bash', hooks: [{ type: 'command', command: `${path.sep}nao-existe${path.sep}gh-guard.sh` }] };
+const stale = { matcher: 'Bash', hooks: [{ type: 'command', command: path.join(path.sep, 'nao-existe', 'hooks', 'gh-guard.sh') }] };
+// Caminho que só o shell resolve não é sobra: não existir ao pé da letra não diz nada.
+const byVariable = { matcher: 'Bash', hooks: [{ type: 'command', command: 'node "$CLAUDE_PROJECT_DIR/.claude/hooks/audit.js"' }] };
+const byRelative = { matcher: 'Bash', hooks: [{ type: 'command', command: 'node ".claude/hooks/x.js"' }] };
+const shared = {
+  matcher: 'Write|Edit',
+  hooks: [
+    { type: 'command', command: path.join(path.sep, 'nao-existe', 'hooks', 'format.sh') },
+    { type: 'command', command: 'npm run format' },
+  ],
+};
 const edited = readSettings();
-edited.hooks.PreToolUse.push(foreign, foreignFile, stale);
+edited.hooks.PreToolUse.push(foreign, foreignFile, stale, byVariable, byRelative);
+edited.hooks.PostToolUse.push(shared);
 edited.theme = 'dark';
 fs.writeFileSync(SETTINGS, JSON.stringify(edited));
 
@@ -92,9 +110,58 @@ report(pre.includes('npx prettier --check .'), 'hook de outra ferramenta continu
 report(!pre.some((command) => command.includes('nao-existe')), 'sobra de instalacao antiga sai', pre.join('\n'));
 report(again.theme === 'dark', 'configuracao alheia continua');
 report(pre.includes(`"${sibling}"`), 'hook alheio com caminho entre aspas continua', pre.join('\n'));
+report(pre.includes(byVariable.hooks[0].command), 'hook alheio com variavel de ambiente continua', pre.join('\n'));
+report(pre.includes(byRelative.hooks[0].command), 'hook alheio com caminho relativo continua', pre.join('\n'));
+const post = again.hooks.PostToolUse.flatMap((entry) => entry.hooks.map((hook) => hook.command));
+report(post.includes('npm run format') && !post.some((command) => command.includes('nao-existe')),
+  'no grupo misto sai so a sobra do kit', post.join('\n'));
+
+// Hook de outra ferramenta com `format` no nome não se passa pelo do kit.
+result = node(INSTALL, ['--check']);
+report(result.status === 0 && result.stdout.includes('ok         format.js'), '--check ignora npm run format', result.stdout);
 
 // Remover o link nunca pode atravessar até a fonte.
-report(fs.existsSync(path.join(ROOT, 'skills', 'sdd-spec', 'SKILL.md')), 'fonte intacta depois de reinstalar');
+report(fs.existsSync(path.join(KIT, 'skills', 'sdd-spec', 'SKILL.md')), 'fonte intacta depois de reinstalar');
+
+// --- quem atualizou a versão em bash com git pull -----------------------------
+// A instalação antiga registrou hooks/*.sh. A ponte mantém a guarda de pé até reinstalar.
+const legacy = readSettings();
+const guardEntry = legacy.hooks.PreToolUse.find((entry) => entry.hooks[0].command.includes('gh-guard.js'));
+guardEntry.hooks[0].command = `"${path.join(KIT, 'hooks', 'gh-guard.sh')}"`;
+fs.writeFileSync(SETTINGS, JSON.stringify(legacy));
+if (!isWindows) {
+  const bridge = spawnSync(guardEntry.hooks[0].command, {
+    shell: true,
+    encoding: 'utf8',
+    input: JSON.stringify({ tool_input: { command: 'gh pr merge 1' } }),
+  });
+  report(bridge.stdout.includes('"permissionDecision":"ask"'), 'ponte .sh executa a guarda', bridge.stderr);
+  const withoutNode = spawnSync('/bin/sh', [path.join(KIT, 'hooks', 'gh-guard.sh')], {
+    encoding: 'utf8',
+    env: { PATH: path.join(TMP, 'sem-node') },
+    input: JSON.stringify({ tool_input: { command: 'gh pr merge 1' } }),
+  });
+  report(withoutNode.stdout.includes('"permissionDecision":"ask"'), 'ponte sem node pergunta', withoutNode.stdout);
+}
+result = node(INSTALL, ['--check']);
+report(result.status === 1 && result.stdout.includes('antigo     gh-guard.sh'), '--check aponta registro antigo', result.stdout);
+result = node(INSTALL, ['claude', '--global']);
+const renewed = readSettings().hooks.PreToolUse.map((entry) => entry.hooks[0].command);
+report(!renewed.some((command) => command.includes('gh-guard.sh')) && renewed.some((command) => command.includes('gh-guard.js')),
+  'reinstalar troca a ponte pelo .js', renewed.join('\n'));
+
+// No Windows o mesmo kit chamado por outra grafia de maiúscula é a mesma instalação.
+if (isWindows) {
+  result = node(INSTALL.toLowerCase(), ['claude', '--global']);
+  const count = readSettings().hooks.PreToolUse.filter((entry) => entry.hooks[0].command.includes('gh-guard.js')).length;
+  report(result.status === 0 && count === 1, 'outra grafia do caminho nao duplica o hook', String(count));
+}
+
+// --- caminho que o shell reescreveria ------------------------------------------
+const dollar = path.join(TMP, 'kit$dev');
+copyKit(dollar, ['install.js', 'lib']);
+result = node(path.join(dollar, 'install.js'), ['claude', '--global']);
+report(result.status === 1 && result.stderr.includes('reinterpreta'), 'caminho com $ recusa registrar hook', result.stdout + result.stderr);
 
 // --- diagnóstico aponta o que falta -------------------------------------------
 fs.rmSync(path.join(SKILLS, 'sdd-spec'), { recursive: true, force: true });

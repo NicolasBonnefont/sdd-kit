@@ -58,7 +58,8 @@ verify('sintaxe dos scripts', () => {
 });
 
 // O que sobrou em shell é só o que não roda no Windows por definição: a porta de entrada
-// por curl e o hook local de commit, que o próprio git executa.
+// por curl, o hook local de commit, que o próprio git executa, e as pontes de hooks/*.sh
+// que mantêm vivas as instalações da versão em bash.
 const shellScripts = allFiles.filter((file) => file.endsWith('.sh') || relative(file).startsWith('.githooks/'));
 
 step('shellcheck');
@@ -177,7 +178,11 @@ verify('o ciclo roda em qualquer terminal', () => {
     if (/\b[\w-]+\.sh\b/.test(text)) problem(`${name}: cita script de shell`);
   }
   for (const file of [...walk(fromRoot('hooks')), ...walk(fromRoot('lib'))]) {
-    if (file.endsWith('.sh')) problem(`${relative(file)}: hook e lib são Node`);
+    if (!file.endsWith('.sh')) continue;
+    // Ponte é o .sh que só repassa ao .js de mesmo nome. Lógica em shell não volta.
+    const target = `${path.basename(file, '.sh')}.js`;
+    const bridge = fs.existsSync(path.join(path.dirname(file), target)) && read(file).includes(`exec node "\${0%/*}/${target}"`);
+    if (!bridge) problem(`${relative(file)}: hook e lib são Node; .sh só como ponte para o .js`);
   }
 });
 
@@ -211,8 +216,10 @@ verify('referências a comandos inexistentes', () => {
 
 verify('bit de execução nos entrypoints', () => {
   // bin/cli.js é o bin do pacote e bootstrap.sh é executado direto. Sem o bit a instalação
-  // morre em "Permission denied" antes de copiar qualquer skill.
-  for (const entry of ['bootstrap.sh', 'bin/cli.js']) {
+  // morre em "Permission denied" antes de copiar qualquer skill. As pontes de hooks/ são
+  // executadas pelo caminho que a instalação antiga registrou.
+  const bridges = fs.readdirSync(fromRoot('hooks')).filter((name) => name.endsWith('.sh'));
+  for (const entry of ['bootstrap.sh', 'bin/cli.js', ...bridges.map((name) => `hooks/${name}`)]) {
     // O índice do git é o que quem clona recebe, e é o único bit que existe no Windows.
     const line = execFileSync('git', ['-C', ROOT, 'ls-files', '-s', '--', entry], { encoding: 'utf8' });
     const mode = line.split(/\s/)[0];

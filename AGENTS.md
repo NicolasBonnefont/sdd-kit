@@ -31,7 +31,7 @@ Abrir pull request, comentar, aprovar, fazer merge, criar ou fechar issue são a
 visíveis para o time inteiro e irreversíveis na prática. **Nenhuma delas parte de
 iniciativa do agente**, nem como passo óbvio seguinte de algo que acabou de terminar.
 
-Enforçado por `hooks/gh-guard.sh`, que devolve `ask` e força a confirmação mesmo
+Enforçado por `hooks/gh-guard.js`, que devolve `ask` e força a confirmação mesmo
 quando o comando está no allowlist de permissões. Ao mexer nele, lembre que a direção
 do erro aqui é o **oposto** do scope-guard: na dúvida, pergunte.
 
@@ -77,7 +77,16 @@ Controle de invocação é declarado **duas vezes**, porque cada harness tem o s
 `policy.allow_implicit_invocation: false` em `agents/openai.yaml` (Codex). Uma skill é
 user-invoked nos dois ou em nenhum — a suíte reprova divergência.
 
+**Sistema também é portabilidade.** O ciclo roda em Linux, macOS, Windows e WSL, no cmd e no
+PowerShell tanto quanto no bash. Por isso script é Node, sem bash e sem `jq`, e skill manda
+rodar `git`, `gh` e `node` em forma que vale em qualquer terminal. O que varia de sistema fica
+concentrado em `lib/lib.js`. Shell sobra só no `bootstrap.sh`, no hook local de commit e nas
+pontes `hooks/*.sh`, que só repassam ao `.js` para quem instalou a versão em bash. Nada disso
+faz parte do ciclo. A suíte roda em Windows no CI e reprova skill que volte a exigir
+bash ou `jq`.
+
 Antes de adicionar qualquer coisa, pergunte: isto funciona no Cursor e no Antigravity?
+E no PowerShell?
 Se não funciona, ou vai para `hooks/`, ou a skill precisa declarar um caminho alternativo
 — como o `sdd-review` faz ao operar sem subagentes.
 
@@ -90,10 +99,10 @@ agents/<nome>.md             Prompt de revisor. Frontmatter no formato do Claude
                              que os demais harnesses ignoram sem quebrar
 skills/<nome>/*-FORMAT.md    Referência descarregada, alcançada por ponteiro
 skills/<nome>/agents/        Adaptador por harness (openai.yaml para o Codex)
-lib/lib.sh                   Configuração, branch base e resolução de spec.
-                             Usado por hooks E por skills — não é específico do Claude
-hooks/                       hooks.json + os três scripts. Claude Code apenas
-install.sh                   Instalador: interativo sem argumentos, direto com eles
+lib/lib.js                   Configuração, branch base, resolução de spec e o que varia
+                             de sistema. Usado por hooks, skills e instalador
+hooks/                       Os três scripts em Node. Claude Code apenas
+install.js                   Instalador: interativo sem argumentos, direto com eles
 bootstrap.sh / bin/cli.js    Portas de entrada (curl e npx) — só clonam e delegam
 ```
 
@@ -163,9 +172,9 @@ separado: comando separado é opcional, e opcional é o que se pula.
 
 ## Suíte
 
-`bash tests/run.sh` — é o que o CI roda. Cobre sintaxe, shellcheck, frontmatter das
-skills, acoplamento com produto, referência a comando inexistente e as duas baterias de
-hook.
+`node tests/run.js` — é o que o CI roda, em Linux e em Windows. Cobre sintaxe, shellcheck,
+frontmatter das skills, acoplamento com produto, referência a comando inexistente e as
+baterias de hook, do validador e do instalador.
 
 Mudança em hook sem caso novo na bateria correspondente não entra. O bypass de cadeia do
 `gh-guard` existiu justamente porque a bateria vivia em prosa neste arquivo em vez de
@@ -178,9 +187,9 @@ de cometer aqui:
 
 | Hook | Reage a | Na dúvida |
 |---|---|---|
-| `scope-guard.sh` | edição de arquivo | **libera** — hook que trava trabalho legítimo é desinstalado na primeira semana |
-| `format.sh` | edição de arquivo | **libera**, sempre em silêncio |
-| `gh-guard.sh` | comando de shell | **pergunta** — o custo de um comentário indevido num PR é maior que o de uma confirmação a mais |
+| `scope-guard.js` | edição de arquivo | **libera** — hook que trava trabalho legítimo é desinstalado na primeira semana |
+| `format.js` | edição de arquivo | **libera**, sempre em silêncio |
+| `gh-guard.js` | comando de shell (Bash e PowerShell) | **pergunta** — o custo de um comentário indevido num PR é maior que o de uma confirmação a mais |
 
 O `scope-guard` reage a `Write|Edit`, **não a `Bash`**. Um `sed -i` ou `>` contorna. Isso é
 consciente: cercar toda escrita de arquivo via shell geraria falso positivo demais. O hook
@@ -189,7 +198,7 @@ consciente: cercar toda escrita de arquivo via shell geraria falso positivo dema
 Teste estes casos antes de commitar, alimentando JSON pelo stdin:
 
 ```bash
-echo '{"tool_input":{"file_path":"/repo/src/x.ts"}}' | hooks/scope-guard.sh
+echo '{"tool_input":{"file_path":"/repo/src/x.ts"}}' | node hooks/scope-guard.js
 ```
 
 - arquivo dentro do escopo → sem saída, exit 0
@@ -198,23 +207,29 @@ echo '{"tool_input":{"file_path":"/repo/src/x.ts"}}' | hooks/scope-guard.sh
 - arquivo novo em diretório que ainda não existe → resolve a raiz subindo pelo caminho
   do próprio arquivo, nunca pelo cwd da sessão (que pode estar em outro repositório)
 - arquivo de outro repositório → sem saída, exit 0
+- caminho do Windows (`C:\repo\x.ts`), com espaço ou acento → mesma decisão do Linux
+- arquivo atrás de link dentro do repositório → vale o nome escrito ou o de destino
+- caminho com colchete listado literalmente (`app/[id]/page.tsx`) → casa consigo mesmo
 - spec ausente, branch sem correspondência, input vazio → sem saída, exit 0
 
-Para o `gh-guard.sh` a bateria é outra, e a direção do erro se inverte:
+Para o `gh-guard.js` a bateria é outra, e a direção do erro se inverte:
 
 ```bash
-jq -n '{tool_input:{command:"gh pr create --fill"}}' | hooks/gh-guard.sh
+echo '{"tool_input":{"command":"gh pr create --fill"}}' | node hooks/gh-guard.js
 ```
 
 - leitura (`view`, `list`, `diff`, `checks`, `status`, `checkout`, `auth status`, `api`
-  sem método de escrita, sem campo e sem corpo) → sem saída
+  sem método ou com `GET`/`HEAD`, sem campo e sem corpo) → sem saída
 - escrita (`pr create|comment|review|merge|close`, `issue create|comment|close`,
-  `release create`, `repo create|delete`, `api -X POST|PUT|PATCH|DELETE`, e `api` com
+  `release create`, `repo create|delete`, `api` com qualquer outro método — entre aspas,
+  colado na flag ou vindo de variável —, e `api` com
   `-f`/`-F`/`--field`/`--raw-field`/`--input`, porque campo ou corpo presente vira POST
   implícito — inclusive com o valor colado na flag) → `ask`
 - leitura de credencial (`variable list|get`, `auth token`, `auth status --show-token`,
   `api` em `variables`, `secrets`, `secret-scanning`, `keys`, `hooks`) → `ask`, pela regra 3
 - comando encadeado ou em pipe que contenha escrita ou credencial em qualquer posição → `ask`
+- grafia do Windows (`gh.exe`, `GH`, `& gh`, `&` como separador) → mesma decisão
+- continuação de linha (`\` no sh, crase no PowerShell) → mesma decisão da linha única
 - comando sem `gh` → sem saída
 
 Lembre que **só exit 2 ou JSON de `deny` bloqueiam**; exit 1 é tratado como erro

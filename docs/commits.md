@@ -45,7 +45,7 @@ O hook `.githooks/commit-msg` roda o commitlint antes de gravar o commit. Sem
 
 **Não usamos husky de propósito.** O husky instala um script `prepare`, que o npm executa
 também no `npx github:NicolasBonnefont/sdd-kit` do usuário final. A porta de instalação
-deste projeto é bash e continua assim.
+deste projeto é o `bin/cli.js`, e nada deve rodar antes dele.
 
 ## No CI
 

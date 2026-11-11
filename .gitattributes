@@ -1,0 +1,3 @@
+# LF em todo checkout, inclusive no Windows: script com CRLF quebra no interpretador, e a
+# suíte compara texto linha a linha.
+* text=auto eol=lf

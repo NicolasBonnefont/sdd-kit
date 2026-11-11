@@ -1,7 +1,7 @@
 ---
 name: sdd-close
 description: Fecha um card ao finalizar a entrega, antes do code review — incorpora ao Module Pack o que a mudança ensinou e arquiva o change spec, para que os deltas virem estado consolidado.
-compatibility: Requer git e bash
+compatibility: Requer git
 disable-model-invocation: true
 ---
 
@@ -60,10 +60,10 @@ O `/sdd-pack` tem as regras de conteúdo de cada seção — siga-as.
 
 ## Passo 3 — arquivar o spec
 
-Mova o diretório do card para o subdiretório de arquivo, mantendo o histórico:
+Crie `docs/specs/.arquivo` se ainda não existir e mova o diretório do card para lá,
+mantendo o histórico:
 
-```bash
-mkdir -p docs/specs/.arquivo
+```
 git mv docs/specs/<id>-<slug> docs/specs/.arquivo/
 ```
 

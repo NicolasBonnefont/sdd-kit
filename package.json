@@ -11,10 +11,13 @@
     "agents",
     "hooks",
     "lib",
-    "install.sh",
+    "install.js",
     "README.md",
     "AGENTS.md"
   ],
+  "scripts": {
+    "test": "node tests/run.js"
+  },
   "engines": {
     "node": ">=18"
   },

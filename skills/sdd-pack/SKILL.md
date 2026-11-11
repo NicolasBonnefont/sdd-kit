@@ -1,7 +1,7 @@
 ---
 name: sdd-pack
 description: Cria ou atualiza o Module Pack (AGENTS.md) de um módulo, com fronteiras, invariantes de negócio, padrão canônico, blast radius e armadilhas.
-compatibility: Requer git e bash
+compatibility: Requer git
 disable-model-invocation: true
 ---
 

@@ -13,32 +13,104 @@ implementam o padrão.
 
 ## Instalação
 
-> [!WARNING]
-> Requer **`jq`**. Os harnesses conversam com hooks por JSON, e é o `jq` que extrai o
-> evento, monta a resposta de bloqueio com escape correto e mescla configuração sem
-> sobrescrever o que já existe.
->
-> ```bash
-> sudo apt install jq      # Debian, Ubuntu
-> sudo dnf install jq      # Fedora
-> brew install jq          # macOS
-> ```
+Requer **Git** e **Node 18 ou superior**, em Linux, macOS ou Windows. Bash e `jq` não são
+necessários. Um comando detecta os harnesses que você já usa, pergunta onde instalar e
+resolve o resto.
 
-Um comando. Ele detecta os harnesses que você já usa, pergunta onde instalar e resolve
-o resto.
+### Linux e macOS
 
 ```bash
 npx github:NicolasBonnefont/sdd-kit
 ```
 
-Sem Node na máquina, a mesma coisa por `curl`:
+Também dá para entrar por `curl`, que exige os mesmos Git e Node:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/NicolasBonnefont/sdd-kit/main/bootstrap.sh | bash
 ```
 
-As duas portas garantem um clone em `~/sdd-kit` e chamam o instalador. **Node não é
-dependência do ferramental** — só do atalho `npx`.
+### Windows (cmd ou PowerShell)
+
+Funciona direto no terminal do Windows, sem WSL e sem Git Bash.
+
+1. Instale o Git e o Node, se ainda não tiver:
+
+   ```powershell
+   winget install --id Git.Git
+   winget install --id OpenJS.NodeJS.LTS
+   ```
+
+2. **Feche e abra o terminal**, para ele enxergar os programas novos, e confira:
+
+   ```powershell
+   git --version
+   node --version
+   ```
+
+3. Rode o instalador:
+
+   ```powershell
+   npx github:NicolasBonnefont/sdd-kit
+   ```
+
+   Se o PowerShell recusar com `a execução de scripts foi desabilitada`, use `npx.cmd` no
+   lugar de `npx`. No cmd esse erro não acontece.
+
+4. Confira a instalação:
+
+   ```powershell
+   npx github:NicolasBonnefont/sdd-kit --check
+   ```
+
+5. Abra o agente no seu projeto e rode `/sdd-connect`, que instala o `gh` e conecta ao
+   GitHub.
+
+Sem o `npx`, o mesmo resultado sai de um clone manual. No PowerShell:
+
+```powershell
+git clone https://github.com/NicolasBonnefont/sdd-kit.git "$HOME\sdd-kit"
+node "$HOME\sdd-kit\install.js"
+```
+
+No cmd, troque `$HOME` por `%USERPROFILE%`.
+
+### WSL (Linux dentro do Windows)
+
+**O WSL é outro sistema.** Ele tem pasta pessoal, Git, Node, `gh` e agente próprios, e a
+instalação feita no Windows não vale lá dentro, nem a do WSL vale no Windows. A regra é
+instalar onde o agente roda: se você abre o agente pelo terminal do WSL, ou pelo VS Code
+conectado ao WSL, siga estes passos dentro do WSL.
+
+1. Abra o terminal do WSL e confira se o Node é o do Linux:
+
+   ```bash
+   which node
+   ```
+
+   Se o caminho começar com `/mnt/c/`, ou se não aparecer nada, esse é o Node do Windows
+   ou nenhum. Instale o Node dentro do WSL, por exemplo com o
+   [nvm](https://github.com/nvm-sh/nvm).
+
+2. Instale como no Linux:
+
+   ```bash
+   npx github:NicolasBonnefont/sdd-kit
+   ```
+
+3. Rode `/sdd-connect` dentro do WSL. A autenticação do `gh` também é separada.
+
+Mantenha os projetos no disco do Linux (`~/projetos`), e não em `/mnt/c/`. O acesso ao disco
+do Windows é bem mais lento, e cada arquivo que o agente edita passa por ali.
+
+Usa os dois ambientes? Instale nos dois, cada um com o próprio clone. Compartilhar o clone
+ou o `.claude` por `/mnt/c/` quebra os hooks, porque o caminho registrado em um sistema não
+existe no outro.
+
+### Depois de instalar
+
+Todas as portas garantem um clone em `~/sdd-kit` e chamam o instalador. Rodar o mesmo
+comando de novo atualiza tudo. Argumentos para automação e diagnóstico estão em
+[docs/instalacao.md](./docs/instalacao.md).
 
 ## O ciclo
 
@@ -65,7 +137,7 @@ O ciclo **lê** do GitHub por conta própria — issue, comentários, diff de PR
 issue são ações visíveis para o time inteiro, e nenhuma delas acontece por iniciativa do
 agente.
 
-A regra está escrita nas skills e enforçada pelo `gh-guard.sh`, que escala a confirmação
+A regra está escrita nas skills e enforçada pelo hook `gh-guard`, que escala a confirmação
 para você **mesmo que o comando esteja no allowlist de permissões**.
 
 O mesmo hook escala a leitura que devolve credencial — valor de variável de CI, chave,
@@ -86,12 +158,12 @@ Sem site de docs por enquanto — tudo vive em [docs/](./docs).
 ## Contribuindo
 
 ```bash
-bash tests/run.sh
+node tests/run.js
 ```
 
-É o que o CI roda: sintaxe, shellcheck, frontmatter contra a spec Agent Skills,
-acoplamento com produto, referência a comando inexistente e as baterias dos hooks.
-Mudança em hook exige caso novo na bateria.
+É o que o CI roda, em Linux e em Windows: sintaxe, shellcheck, frontmatter contra a spec
+Agent Skills, acoplamento com produto, referência a comando inexistente e as baterias dos
+hooks e do instalador. Mudança em hook exige caso novo na bateria.
 
 Commits seguem [Conventional Commits](https://www.conventionalcommits.org), com no
 máximo 100 caracteres na primeira linha. Para validar antes de commitar:

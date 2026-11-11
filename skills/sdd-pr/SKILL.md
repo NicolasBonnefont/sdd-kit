@@ -1,7 +1,7 @@
 ---
 name: sdd-pr
 description: Monta a descrição do pull request a partir do change spec, das evidências de execução e dos achados resolvidos, e abre o PR após autorização explícita.
-compatibility: Requer git, bash, jq e gh autenticado
+compatibility: Requer git e gh autenticado
 disable-model-invocation: true
 ---
 
@@ -43,7 +43,7 @@ Onde o spec não responde, escreva que não há informação — não preencha p
 
 **Mostre a descrição completa no chat e espere autorização explícita.** Com o "pode abrir":
 
-```bash
+```
 gh pr create --title "<título>" --body-file <arquivo> --fill
 ```
 

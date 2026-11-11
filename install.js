@@ -16,7 +16,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const readline = require('node:readline/promises');
-const { relativeTo, toPosix, which } = require('./lib/lib.js');
+const { copyTree, relativeTo, toPosix, which } = require('./lib/lib.js');
 
 const SOURCE = __dirname;
 const HOME = os.homedir();
@@ -90,7 +90,7 @@ function linkOrCopy(source, dest, type) {
     fs.symlinkSync(source, dest, type);
     return false;
   } catch {
-    fs.cpSync(source, dest, { recursive: true });
+    copyTree(source, dest);
     return true;
   }
 }

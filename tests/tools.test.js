@@ -11,6 +11,7 @@ const { execFileSync, spawnSync } = require('node:child_process');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const { copyTree } = require('../lib/lib.js');
 
 const ROOT = path.join(__dirname, '..');
 const isWindows = process.platform === 'win32';
@@ -47,9 +48,7 @@ const commandFor = (settings, name) => allHooks(settings)
   .find((command) => command.includes(name));
 
 fs.mkdirSync(HOME, { recursive: true });
-const copyKit = (dest, parts) => parts.forEach((part) => fs.cpSync(path.join(ROOT, part), path.join(dest, part), {
-  recursive: true,
-}));
+const copyKit = (dest, parts) => parts.forEach((part) => copyTree(path.join(ROOT, part), path.join(dest, part)));
 copyKit(KIT, ['install.js', 'lib', 'hooks', 'skills', 'agents']);
 
 // --- instalação global --------------------------------------------------------

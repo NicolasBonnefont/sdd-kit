@@ -40,9 +40,15 @@ function run(command, args, cwd) {
 // O executável local do projeto. No Windows o npm e o composer criam `.cmd` e `.bat`.
 function localTool(root, relative) {
   const base = path.join(root, relative);
-  const candidates = isWindows ? ['.cmd', '.bat', '.exe'].map((ext) => base + ext) : [base];
+  const candidates = isWindows && !path.extname(base)
+    ? ['.cmd', '.bat', '.exe'].map((ext) => base + ext)
+    : [base];
   return candidates.find(isExecutable) || null;
 }
+
+// Nome com barra é caminho a partir da raiz do repositório, como o `command -v` resolvia
+// rodando dali. Sem barra, vem do PATH.
+const resolveCommand = (root, name) => (/[/\\]/.test(name) ? localTool(root, name) : which(name));
 
 // Devolve true quando encontrou a ferramenta, mesmo que ela tenha falhado no arquivo.
 function runFirst(root, tools) {
@@ -97,9 +103,11 @@ function main() {
     return;
   }
 
-  // O .sdd.json é versionado no repositório clonado, então este valor é entrada não
-  // confiável executada num PostToolUse. Duas restrições fecham o caminho óbvio de
-  // injeção sem impedir os casos reais (`make fmt`, `npx prettier --write`):
+  // O .sdd.json vem versionado no repositório, e este hook roda a ferramenta que ele
+  // aponta, como já roda o prettier de node_modules ou o pint de vendor. Formatar com o
+  // ferramental do projeto é executar código do projeto: abrir um repositório aqui é
+  // confiar nele. O que estas duas regras garantem é só que o nome do arquivo editado
+  // chegue como argumento, sem passar por shell:
   //   1. nada de metacaractere de shell, incluindo os do cmd.exe
   //   2. o primeiro token tem de resolver para um executável
   if (/[;&|`$><()%^\r\n]/.test(custom)) {
@@ -107,8 +115,9 @@ function main() {
     return;
   }
   const [name, ...args] = custom.trim().split(/\s+/);
-  const command = which(name);
+  const command = resolveCommand(root, name);
   if (command) run(command, [...args, file], root);
+  else process.stderr.write(`sdd: formatCommand não encontrado: ${name}\n`);
 }
 
 try {

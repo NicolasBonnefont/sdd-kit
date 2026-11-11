@@ -277,8 +277,21 @@ setFormat('node fmt.js; echo x');
 result = format(marker);
 report(result.status === 0 && !fs.existsSync(`${marker}.ok`) && result.stderr.includes('metacaractere'), 'metacaractere e ignorado', result.stderr);
 
+// Nome com barra é caminho a partir da raiz do repositório.
+fs.mkdirSync(path.join(F, 'bin'));
+if (isWindows) {
+  fs.writeFileSync(path.join(F, 'bin', 'fmt.cmd'), `@"${process.execPath}" "${formatter}" %*\r\n`);
+} else {
+  fs.writeFileSync(path.join(F, 'bin', 'fmt'), `#!/bin/sh\nexec "${process.execPath}" "${formatter}" "$@"\n`, { mode: 0o755 });
+}
+setFormat('bin/fmt');
+result = format(marker);
+report(result.status === 0 && fs.existsSync(`${marker}.ok`), 'formatCommand com caminho do repositorio', result.stderr);
+fs.rmSync(`${marker}.ok`);
+
 setFormat('programa-que-nao-existe --write');
-report(format(marker).status === 0, 'formatador ausente passa em silencio');
+result = format(marker);
+report(result.status === 0 && result.stderr.includes('não encontrado'), 'formatador ausente avisa e nao bloqueia', result.stderr);
 report(format(path.join(F, 'nao-existe.ts')).status === 0, 'arquivo ausente passa em silencio');
 report(node(FORMAT, [], { input: 'isto nao e json' }).status === 0, 'entrada invalida passa em silencio');
 

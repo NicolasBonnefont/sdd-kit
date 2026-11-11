@@ -24,3 +24,12 @@ crie o arquivo se os padrões servem:
   "formatCommand": "make fmt"
 }
 ```
+
+O `formatCommand` recebe o arquivo editado como último argumento, sem passar por shell, e
+por isso recusa metacaractere. Nome com barra, como `scripts/fmt`, é caminho a partir da
+raiz do repositório; sem barra, vem do PATH. Comando que não é encontrado gera um aviso e
+a edição segue.
+
+Formatar com o ferramental do projeto é executar código do projeto, pelo `formatCommand`
+ou pelo prettier de `node_modules`. O hook roda em todo repositório aberto no agente, então
+abrir um repositório desconhecido com ele instalado é confiar no que esse repositório traz.

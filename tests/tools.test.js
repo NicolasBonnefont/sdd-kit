@@ -225,6 +225,16 @@ G('commit', '-qm', 'mudanca');
 result = node(VALIDATE, [], { cwd: P });
 report(result.status === 0 && result.stdout.includes('Estrutura válida.'), 'spec completo e pack no diff passam', result.stdout);
 
+// Diff que o git não calcula reprova, em vez de virar diff vazio que passa.
+result = node(VALIDATE, [path.join('docs', 'specs', '915-filtro'), 'inexistente'], { cwd: P });
+report(result.status === 1 && result.stdout.includes('FALHA  não consegui calcular o diff contra inexistente'), 'base inexistente reprova', result.stdout);
+
+// Clone sem a branch base local usa a do remoto.
+const P2 = path.join(TMP, 'clone validado');
+execFileSync('git', ['clone', '-q', P, P2], { stdio: 'ignore' });
+result = node(VALIDATE, [path.join('docs', 'specs', '915-filtro'), 'main'], { cwd: P2 });
+report(result.status === 0 && result.stdout.includes('Estrutura válida.'), 'base so no remoto serve', result.stdout);
+
 fs.writeFileSync(path.join(specDir, 'tasks.md'), '- [x] ### T1\n  **Consumes:** a\n  **Produces:** b\n  **Requisito:** c\n  **Verificação:** d\n- [ ] ### T2\n  **Consumes:** a\n');
 result = node(VALIDATE, [path.join('docs', 'specs', '915-filtro'), 'main'], { cwd: P });
 report(result.status === 1 && result.stdout.includes('FALHA  todas as 2 tasks têm **Produces:** (achei 1)'), 'task incompleta reprova', result.stdout);

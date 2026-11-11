@@ -91,9 +91,16 @@ function checkScope(spec, root, base) {
   if (patterns.length === 0) return;
 
   const specsRel = lib.specsDir(root);
-  // Sem o quotepath, o git devolve nome acentuado entre aspas e em octal.
-  const diff = lib.git(root, '-c', 'core.quotepath=off', 'diff', '--name-only', `${base}...HEAD`);
-  const outside = (diff || '').split('\n')
+  // Sem o quotepath, o git devolve nome acentuado entre aspas e em octal. Num clone sem a
+  // branch base local, a do remoto serve igual.
+  const changed = (ref) => lib.git(root, '-c', 'core.quotepath=off', 'diff', '--name-only', `${ref}...HEAD`);
+  const diff = changed(base) ?? changed(`origin/${base}`);
+  if (diff === null) {
+    console.log(`FALHA  não consegui calcular o diff contra ${base}; passe a branch base como argumento`);
+    failed = true;
+    return;
+  }
+  const outside = diff.split('\n')
     .filter((file) => file && !lib.isCycleArtifact(file, specsRel))
     .filter((file) => !patterns.some((pattern) => lib.matchesGlob(file, pattern)));
 

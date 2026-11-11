@@ -23,4 +23,9 @@ else
   git clone --quiet "$REPO" "$HOME_DIR"
 fi
 
+# Pelo `curl | bash` a entrada do processo é o próprio script. O modo interativo precisa do
+# teclado, então sem argumentos ele lê do terminal quando há um.
+if [ "$#" -eq 0 ] && (exec </dev/tty) 2>/dev/null; then
+  exec node "$HOME_DIR/install.js" </dev/tty
+fi
 exec node "$HOME_DIR/install.js" "$@"

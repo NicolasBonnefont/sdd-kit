@@ -182,6 +182,16 @@ result = node(CLI, ['--dir', path.join(TMP, 'via cli')], {
 });
 report(result.status === 0 && fs.existsSync(path.join(TMP, 'via cli', 'sdd-help', 'SKILL.md')), 'cli clona e delega', result.stdout + result.stderr);
 
+// A porta do curl é bash, e só existe fora do Windows.
+if (!isWindows) {
+  result = spawnSync('bash', [path.join(ROOT, 'bootstrap.sh'), '--dir', path.join(TMP, 'via curl')], {
+    encoding: 'utf8',
+    cwd: HOME,
+    env: { ...env, SDD_KIT_REPO: ROOT, SDD_KIT_HOME: path.join(TMP, 'clone do curl') },
+  });
+  report(result.status === 0 && fs.existsSync(path.join(TMP, 'via curl', 'sdd-help', 'SKILL.md')), 'bootstrap clona e delega', result.stdout + result.stderr);
+}
+
 // --- validador ----------------------------------------------------------------
 const P = path.join(TMP, 'projeto validado');
 const G = (...args) => execFileSync('git', ['-C', P, ...args], { stdio: 'ignore' });

@@ -23,10 +23,20 @@ const MENTIONS_GH = /(^|[^a-zA-Z0-9_-])gh([^a-zA-Z0-9_-]|$)/i;
 // com leitura e liberava tudo o que vinha depois do &&.
 //
 // `&` sozinho também separa comando, mas aparece dentro de URL (`?a=1&b=2`), onde cortar
-// esconderia uma flag de escrita do resto do segmento. Por isso são duas leituras: uma
-// corta no `&`, a outra não, e a decisão é a mais restritiva das duas.
+// esconderia uma flag de escrita do resto do segmento. Por isso cada leitura é feita duas
+// vezes, cortando e sem cortar no `&`, e a decisão é a mais restritiva.
 const SEPARATORS = /&&|\|\||;|\||\$\(|`|\r?\n/;
 const SEPARATORS_WITH_AMPERSAND = /&&|\|\||;|\||\$\(|`|\r?\n|&/;
+
+// Continuação de linha: `\` no sh e crase no PowerShell, no fim da linha. Sem juntar, a
+// flag de escrita da linha de baixo cai num segmento sem `gh`. Só que no sh a crase também
+// abre substituição de comando, e juntá-la ali esconderia o separador. Como o hook não sabe
+// qual shell vai rodar, avalia o comando cru e cada forma de juntar, e fica com a pior.
+const READINGS = [
+  (command) => command,
+  (command) => command.replace(/\\[ \t]*\r?\n/g, ' '),
+  (command) => command.replace(/`[ \t]*\r?\n/g, ' '),
+];
 
 // Regra: basta UM segmento gh que não seja comprovadamente leitura para perguntar.
 // É allowlist: o que não estiver enumerado aqui vira pergunta, inclusive subcomando
@@ -45,10 +55,19 @@ const READONLY_SEGMENT = new RegExp(`^\\s*gh(\\.exe)?\\s+(${[
   'gist\\s+(view|list)',
   'browse',
   'api',
-].join('|')})(\\s|$)`);
+].join('|')})(\\s|$)`, 'i');
 
-const API_CALL = /(^|[^a-zA-Z0-9_-])gh(\.exe)?\s+api(\s|$)/;
-const WRITE_METHOD = /(-X|--method)\s*=?\s*(POST|PUT|PATCH|DELETE)/i;
+const API_CALL = /(^|[^a-zA-Z0-9_-])gh(\.exe)?\s+api(\s|$)/i;
+
+// Método é escrita salvo prova em contrário: só GET e HEAD liberam. Entre aspas, colado
+// na flag ou vindo de variável, o valor é avaliado igual.
+const METHOD = /(?:^|[\s"'])(?:-[a-zA-Z]*X|--method)(?:\s*=\s*|\s+|(?=\S))(\S+)/g;
+const READ_METHODS = new Set(['GET', 'HEAD']);
+
+function writesByMethod(segment) {
+  return [...segment.matchAll(METHOD)]
+    .some(([, value]) => !READ_METHODS.has(value.replace(/["']/g, '').toUpperCase()));
+}
 
 // Armadilha do gh: a simples presença de campo ou de corpo promove a chamada a POST
 // implicitamente, sem nenhum -X na linha. A flag curta aceita valor colado (-ft=x) e
@@ -61,7 +80,7 @@ const CREDENTIAL_COMMAND = new RegExp(`(^|[^a-zA-Z0-9_-])gh(\\.exe)?\\s+(${[
   'variable\\s+(list|get)',
   'auth\\s+token',
   'auth\\s+status.*\\s(--show-token|-t)',
-].join('|')})(\\s|$)`);
+].join('|')})(\\s|$)`, 'i');
 
 // O mesmo material pela API: variável de Actions, segredo, alerta de secret scanning
 // (que traz o valor vazado), deploy key e webhook.
@@ -74,18 +93,20 @@ function classifySegment(segment) {
   if (!API_CALL.test(segment)) return null;
 
   // `gh api` é o único verbo da lista de leitura que escreve sem mudar de nome.
-  if (WRITE_METHOD.test(segment) || IMPLICIT_POST.test(segment)) return 'escrita';
+  if (writesByMethod(segment) || IMPLICIT_POST.test(segment)) return 'escrita';
   return CREDENTIAL_PATH.test(segment) ? 'credencial' : null;
 }
 
 // Em cadeia com as duas coisas a escrita prevalece: é ela que o motivo precisa nomear.
 function classify(command) {
   let reason = null;
-  for (const separators of [SEPARATORS, SEPARATORS_WITH_AMPERSAND]) {
-    for (const segment of command.split(separators)) {
-      const found = classifySegment(segment);
-      if (found === 'escrita') return found;
-      reason = found || reason;
+  for (const read of READINGS) {
+    for (const separators of [SEPARATORS, SEPARATORS_WITH_AMPERSAND]) {
+      for (const segment of read(command).split(separators)) {
+        const found = classifySegment(segment);
+        if (found === 'escrita') return found;
+        reason = found || reason;
+      }
     }
   }
   return reason;

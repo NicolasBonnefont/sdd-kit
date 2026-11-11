@@ -216,15 +216,17 @@ echo '{"tool_input":{"command":"gh pr create --fill"}}' | node hooks/gh-guard.js
 ```
 
 - leitura (`view`, `list`, `diff`, `checks`, `status`, `checkout`, `auth status`, `api`
-  sem método de escrita, sem campo e sem corpo) → sem saída
+  sem método ou com `GET`/`HEAD`, sem campo e sem corpo) → sem saída
 - escrita (`pr create|comment|review|merge|close`, `issue create|comment|close`,
-  `release create`, `repo create|delete`, `api -X POST|PUT|PATCH|DELETE`, e `api` com
+  `release create`, `repo create|delete`, `api` com qualquer outro método — entre aspas,
+  colado na flag ou vindo de variável —, e `api` com
   `-f`/`-F`/`--field`/`--raw-field`/`--input`, porque campo ou corpo presente vira POST
   implícito — inclusive com o valor colado na flag) → `ask`
 - leitura de credencial (`variable list|get`, `auth token`, `auth status --show-token`,
   `api` em `variables`, `secrets`, `secret-scanning`, `keys`, `hooks`) → `ask`, pela regra 3
 - comando encadeado ou em pipe que contenha escrita ou credencial em qualquer posição → `ask`
 - grafia do Windows (`gh.exe`, `GH`, `& gh`, `&` como separador) → mesma decisão
+- continuação de linha (`\` no sh, crase no PowerShell) → mesma decisão da linha única
 - comando sem `gh` → sem saída
 
 Lembre que **só exit 2 ou JSON de `deny` bloqueiam**; exit 1 é tratado como erro

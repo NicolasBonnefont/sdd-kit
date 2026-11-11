@@ -243,11 +243,42 @@ expect('libera', 'gh pr view 1 2>&1');
 expect('libera', 'gh api "repos/o/r/issues?state=open&per_page=100"');
 expect('ask', 'gh api "repos/o/r/issues?a=1&b=2" -f title=x');
 
+// Continuação de linha leva a flag para a linha de baixo, onde não há `gh` nenhum.
+expect('ask', 'gh api repos/o/r/issues/1/comments \\\n  -f body=hi');
+expect('ask', 'gh api repos/o/r/git/refs/heads/main \\\n  -X DELETE');
+expect('ask', 'gh api repos/o/r/git/refs/heads/main \\\r\n  -X DELETE');
+expect('ask', 'gh auth status \\\n  --show-token');
+expect('ask', 'gh api repos/o/r/pulls/1/reviews `\n  -f event=APPROVE');
+expect('ask', 'gh api repos/o/r/pulls/1/reviews ` \r\n  -f event=APPROVE');
+expect('libera', 'gh pr list \\\n  --state open');
+// No sh a crase abre substituição: juntar a linha não pode esconder o comando seguinte.
+expect('ask', 'x=`gh pr view 1`\ngh pr create --fill');
+expect('ask', 'gh pr view C:\\\ngh pr create --fill');
+
+// Método vale com aspas, colado, em minúscula ou vindo de variável. Só GET e HEAD leem.
+expect('ask', 'gh api -X "DELETE" repos/o/r/git/refs/heads/x');
+expect('ask', "gh api --method 'PUT' repos/o/r/pulls/1/merge");
+expect('ask', 'gh api --method="PATCH" repos/o/r/issues/1');
+expect('ask', 'gh api -X"DELETE" repos/o/r/git/refs/heads/x');
+expect('ask', 'gh api -X delete repos/o/r/git/refs/heads/x');
+expect('ask', 'gh api -X $metodo repos/o/r/git/refs/heads/x');
+expect('ask', 'gh api -iX DELETE repos/o/r/git/refs/heads/x');
+expect('libera', 'gh api -X "GET" repos/o/r/issues');
+expect('libera', 'gh api --method HEAD repos/o/r');
+
+// Maiúscula vale para leitura e para credencial, não só para a menção ao gh.
+expect('libera', 'GH pr view 1');
+expect('libera', 'GH API repos/o/r/issues');
+expect('ask', 'GH API -X DELETE repos/o/r/git/refs/heads/x');
+expect('ask', 'GH auth token');
+
 // --- o motivo mostrado precisa ser verdadeiro ---------------------------------
 // Quem confirma decide pelo texto: leitura de credencial descrita como escrita ensina a
 // ignorar a pergunta. Em cadeia com as duas coisas, a escrita prevalece.
 expectReason('lê material de credencial', 'gh api repos/o/r/actions/variables');
 expectReason('lê material de credencial', 'gh auth token');
+expectReason('lê material de credencial', 'GH auth token');
+expectReason('lê material de credencial', 'gh auth status \\\n  --show-token');
 expectReason('escreve no GitHub', 'gh pr create --fill');
 expectReason('escreve no GitHub', 'gh api -X POST repos/o/r/actions/variables');
 expectReason('escreve no GitHub', 'gh api repos/o/r/hooks && gh pr create --fill');

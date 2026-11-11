@@ -207,6 +207,8 @@ echo '{"tool_input":{"file_path":"/repo/src/x.ts"}}' | node hooks/scope-guard.js
   do próprio arquivo, nunca pelo cwd da sessão (que pode estar em outro repositório)
 - arquivo de outro repositório → sem saída, exit 0
 - caminho do Windows (`C:\repo\x.ts`), com espaço ou acento → mesma decisão do Linux
+- arquivo atrás de link dentro do repositório → vale o nome escrito ou o de destino
+- caminho com colchete listado literalmente (`app/[id]/page.tsx`) → casa consigo mesmo
 - spec ausente, branch sem correspondência, input vazio → sem saída, exit 0
 
 Para o `gh-guard.js` a bateria é outra, e a direção do erro se inverte:

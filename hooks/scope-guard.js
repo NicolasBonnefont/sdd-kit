@@ -13,6 +13,7 @@ const {
   findSpec,
   git,
   isCycleArtifact,
+  literalRelative,
   matchesGlob,
   readHookInput,
   realPath,
@@ -40,18 +41,24 @@ function main() {
   const root = realPath(toplevel);
 
   // Se o arquivo não está sob a raiz encontrada, não é assunto deste repositório.
-  const rel = relativeTo(root, located.file);
-  if (rel === null) return;
+  const real = relativeTo(root, located.file);
+  if (real === null) return;
 
   const specDir = findSpec(root, git(root, 'branch', '--show-current'));
   if (!specDir) return;
   const spec = path.join(specDir, 'spec.md');
   if (!fs.existsSync(spec)) return;
 
-  if (isCycleArtifact(rel, specsDir(root))) return;
+  // Através de link, o arquivo tem dois nomes: o escrito e o de destino, que é o que o git
+  // registra. Basta um deles estar no escopo.
+  const written = literalRelative(root, located.dir, file);
+  const names = [...new Set([written, real].filter(Boolean))];
+  const rel = names[0];
+  if (names.some((name) => isCycleArtifact(name, specsDir(root)))) return;
 
   const patterns = scopePatterns(spec);
-  if (patterns.length === 0 || patterns.some((pattern) => matchesGlob(rel, pattern))) return;
+  const allowed = (name) => patterns.some((pattern) => matchesGlob(name, pattern));
+  if (patterns.length === 0 || names.some(allowed)) return;
 
   writeHookDecision('deny', [
     'Fora do escopo declarado no change spec.',

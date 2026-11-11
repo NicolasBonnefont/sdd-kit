@@ -100,6 +100,34 @@ repository(D, '77-tela');
 expect('libera', 'espaco e acento, dentro do escopo', event(path.join(D, 'app', 'b.ts'), D));
 expect('deny', 'espaco e acento, fora do escopo', event(path.join(D, 'lib', 'c.ts'), D));
 
+// --- link dentro do repositório: o nome escrito e o de destino valem ----------
+// Junction é o link de diretório que o Windows cria sem administrador; fora dele o tipo é
+// ignorado. O destino absoluto é o que a junction exige.
+const L = path.join(TMP, 'link');
+write(path.join(L, 'docs', 'specs', '60-config', 'spec.md'), '## Arquivos no escopo\n- src/config/**\n- app/users/[id]/page.tsx\n');
+write(path.join(L, 'shared', 'config', 'a.ts'), 'x\n');
+write(path.join(L, 'lib', 'b.ts'), 'x\n');
+fs.mkdirSync(path.join(L, 'src'), { recursive: true });
+fs.symlinkSync(path.join(L, 'shared', 'config'), path.join(L, 'src', 'config'), 'junction');
+repository(L, '60-config');
+
+expect('libera', 'arquivo pelo link, escopo no nome escrito', event(path.join(L, 'src', 'config', 'a.ts'), L));
+expect('libera', 'arquivo novo pelo link', event(path.join(L, 'src', 'config', 'novo', 'c.ts'), L));
+expect('deny', 'fora do escopo com link no repositorio', event(path.join(L, 'lib', 'b.ts'), L));
+// Colchete é nome de pasta no Next.js: o caminho exato casa consigo mesmo.
+expect('libera', 'caminho com colchetes listado no escopo', event(path.join(L, 'app', 'users', '[id]', 'page.tsx'), L));
+expect('deny', 'irmao do caminho com colchetes', event(path.join(L, 'app', 'users', 'x', 'page.tsx'), L));
+
+// A pasta do spec também pode ser link.
+const S = path.join(TMP, 'spec-link');
+const real = path.join(TMP, 'specs reais', '61-tela');
+write(path.join(real, 'spec.md'), '## Arquivos no escopo\n- src/**\n');
+write(path.join(S, 'lib', 'a.ts'), 'x\n');
+fs.mkdirSync(path.join(S, 'docs', 'specs'), { recursive: true });
+fs.symlinkSync(real, path.join(S, 'docs', 'specs', '61-tela'), 'junction');
+repository(S, '61-tela');
+expect('deny', 'spec em pasta que e link', event(path.join(S, 'lib', 'a.ts'), S));
+
 // --- spec arquivado não restringe mais nada -----------------------------------
 const E = path.join(TMP, 'arquivado');
 write(path.join(E, 'docs', 'specs', '.arquivo', '50-velho', 'spec.md'), '## Arquivos no escopo\n- src/**\n');
@@ -132,6 +160,9 @@ same(matchesGlob('src/a/b.ts', 'src/**', 'linux'), true, 'glob atravessa barra')
 same(matchesGlob('src/a.ts', 'src/[ab].ts', 'linux'), true, 'classe de caractere');
 same(matchesGlob('src/c.ts', 'src/[!ab].ts', 'linux'), true, 'classe negada');
 same(matchesGlob('SRC/a.ts', 'src\\*', 'win32'), true, 'glob escrito com contrabarra');
+same(matchesGlob('app/[id]/page.tsx', 'app/[id]/page.tsx', 'linux'), true, 'colchete literal casa consigo');
+same(matchesGlob('App/[Id]/page.tsx', 'app/[id]/page.tsx', 'win32'), true, 'colchete literal sem maiuscula no Windows');
+same(matchesGlob('app/i/page.tsx', 'app/[id]/page.tsx', 'linux'), true, 'colchete continua classe no glob');
 
 // Limpeza não decide o resultado: o Windows pode segurar arquivo do .git por um instante.
 try {
